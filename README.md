@@ -2,7 +2,7 @@
 
 ![Static Badge](https://img.shields.io/gitea/issues/open/DennisVL/toggly?gitea_url=https%3A%2F%2Fcodeberg.org%2F&style=for-the-badge)
 
-![Toggly logo](./docs/logo.png)
+![Toggly logo](./docs/logo_cropped.png)
 
 **At this time Toggly is not a working product, but very much a WIP**
 
