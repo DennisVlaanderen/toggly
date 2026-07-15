@@ -4,6 +4,8 @@
 
 ![Toggly logo](./docs/logo.png)
 
+**At this time Toggly is not a working product, but very much a WIP**
+
 Toggly is an opinionated Feature Flagging toolkit designed from the ground up to handle large amounts of connections and requests.
 This makes Toggly highly efficient for distributed/cloud-based workloads running in Containers or on Kubernetes platforms.  
 To accomplish this Toggly operates at the OSI Layer 4 TCP level using raw sockets, rather than the HTTP/WebSocket layer, with the FQDP protocol designed for Feature Flagging in distributed systems.
