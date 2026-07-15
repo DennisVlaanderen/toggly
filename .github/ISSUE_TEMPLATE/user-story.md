@@ -21,4 +21,3 @@ assignees: ''
 - [ ] Code is reviewed and approved.
 - [ ] Necessary tests are written and pass.
 - [ ] Documentation is updated, if applicable.
-- [ ] Feature is deployed to the [environment name].
