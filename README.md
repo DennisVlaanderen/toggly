@@ -1,8 +1,8 @@
 # Toggly
 
-![Static Badge](https://img.shields.io/gitea/issues/open/DennisVL/toggly?gitea_url=https%3A%2F%2Fcodeberg.org%2F&style=for-the-badge)
-
-![Toggly logo](./docs/logo_cropped.png)
+<p align="center">
+  <img src="./docs/logo_cropped.png" alt="Toggly mascot holding a toggle button"/>
+</p>
 
 **At this time Toggly is not a working product, but very much a WIP**
 
