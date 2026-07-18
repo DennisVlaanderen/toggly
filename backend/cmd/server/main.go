@@ -65,7 +65,10 @@ func storeConfigFromEnvironment() store.Config {
 
 	bindAddr := strings.TrimSpace(os.Getenv("TOGGLY_RAFT_BIND_ADDR"))
 	if bindAddr == "" {
-		bindAddr = ":9100"
+		// A wildcard address (":9100") isn't advertisable to raft peers on
+		// some hosts (observed on Windows outside Docker); loopback is a
+		// safe default for a single-node local run.
+		bindAddr = "127.0.0.1:9100"
 	}
 
 	dataDir := strings.TrimSpace(os.Getenv("TOGGLY_RAFT_DATA_DIR"))
