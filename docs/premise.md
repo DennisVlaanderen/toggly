@@ -1,6 +1,6 @@
 # Toggly Project Overview
 
-Toggly is a distributed feature flag management project built with Elixir principles in mind. It is designed to support high-availability, real-time feature control for applications and microservices through a combination of a distributed server fleet, web APIs, and application-side flag registries.
+Toggly is a distributed feature flag management project built with Distributed Data principles in mind. It is designed to support high-availability, real-time feature control for applications and microservices through a combination of a distributed server fleet, web APIs, and application-side flag registries.
 
 ## Core Premise
 
@@ -20,7 +20,7 @@ The server side is built for high availability and redundancy. Key characteristi
 - Multiple server nodes can run in a cluster so no single node is a point of failure.
 - State can be shared or replicated across nodes to ensure consistent feature flag values.
 - Servers can handle flag queries, subscriptions, and infrastructure coordination.
-- Design should support Elixir/OTP concepts such as supervision trees, GenServers, and distributed messaging.
+- Design should support Distributed Data concepts such as Quorum, Data Mirroring and Versioned State.
 
 A distributed architecture allows Toggly to scale horizontally and stay available even when individual nodes fail or are restarted.
 
@@ -67,14 +67,3 @@ A strong data architecture is important for distributed reliability:
 - Design the API and event notifications so that only relevant changes are pushed to clients.
 - Consider using an append-only event log or versioned state for efficient synchronization.
 - Support eventual consistency with a strong expectation of stable, near-real-time propagation.
-
-## Elixir-Focused Design Notes
-
-Toggly is well suited to Elixir thanks to OTP and BEAM distributed capabilities:
-
-- GenServers, Supervisors, and Registries can manage flag state and subscriptions.
-- `Phoenix.PubSub` or distributed message buses can deliver updates to applications.
-- Supervision trees ensure each part of the system can restart cleanly.
-- Elixir’s lightweight processes let the server manage many concurrent client subscriptions efficiently.
-
-By combining these Elixir strengths, Toggly can offer a distributed feature flag solution that is maintainable, scalable, and responsive.
