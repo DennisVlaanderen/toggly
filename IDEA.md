@@ -1,0 +1,1 @@
+Feature flagging application to run distributed across multiple nodes. Running a prprietary Layer 4 TCP protocol called FQDP but also exposing a HTTP API for a front end application. Built in Go and SvelteKit for the UI.

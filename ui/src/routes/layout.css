@@ -1,3 +1,109 @@
 @import 'tailwindcss';
 @plugin '@tailwindcss/forms';
 @plugin '@tailwindcss/typography';
+
+@theme {
+    /* Disable all default colors except mauve */
+    --color-red:        none;
+    --color-orange:     none;
+    --color-yellow:     none;
+    --color-amber:      none;
+    --color-lime:       none;
+    --color-green:      none;
+    --color-emerald:    none;
+    --color-teal:       none;
+    --color-cyan:       none;
+    --color-sky:        none;
+    --color-blue:       none;
+    --color-indigo:     none;
+    --color-violet:     none;
+    --color-purple:     none;
+    --color-fuchsia:    none;
+    --color-pink:       none;
+    --color-rose:       none;
+    --color-slate:      none;
+    --color-gray:       none;
+    --color-zinc:       none;
+    --color-neutral:    none;
+    --color-stone:      none;
+    --color-taupe:      none;
+    --color-mist:       none;
+    --color-olive:      none;
+
+    /* Brand (Purple) */
+    --color-brand-50:  oklch(0.94 0.03 300);
+    --color-brand-100: oklch(0.89 0.05 300);
+    --color-brand-200: oklch(0.82 0.09 300);
+    --color-brand-300: oklch(0.75 0.12 300);
+    --color-brand-400: oklch(0.68 0.15 300);
+    --color-brand-500: oklch(0.62 0.18 300); /* main droplet purple */
+    --color-brand-600: oklch(0.55 0.16 300);
+    --color-brand-700: oklch(0.45 0.13 300);
+    --color-brand-800: oklch(0.35 0.10 300);
+    --color-brand-900: oklch(0.25 0.08 300);
+
+    /* Accent (Lavender Highlight) */
+    --color-accent-50:  oklch(0.98 0.01 300);
+    --color-accent-100: oklch(0.96 0.02 300);
+    --color-accent-200: oklch(0.92 0.03 300);
+    --color-accent-300: oklch(0.88 0.04 300);
+    --color-accent-400: oklch(0.82 0.05 300);
+    --color-accent-500: oklch(0.76 0.06 300); /* glossy highlight */
+    --color-accent-600: oklch(0.70 0.07 300);
+    --color-accent-700: oklch(0.63 0.08 300);
+    --color-accent-800: oklch(0.55 0.09 300);
+    --color-accent-900: oklch(0.45 0.10 300);
+
+    /* Toggle */
+    --color-toggle-base:     oklch(1 0 0);
+    --color-toggle-active:   oklch(0.78 0.12 300);
+    --color-toggle-off:      oklch(0.93 0.01 95);
+
+    /* Info (Blue) */
+    --color-info-50:  oklch(0.95 0.03 240);
+    --color-info-100: oklch(0.90 0.05 240);
+    --color-info-200: oklch(0.83 0.08 240);
+    --color-info-300: oklch(0.76 0.11 240);
+    --color-info-400: oklch(0.69 0.14 240);
+    --color-info-500: oklch(0.62 0.17 240); /* soft bright blue */
+    --color-info-600: oklch(0.55 0.15 240);
+    --color-info-700: oklch(0.45 0.12 240);
+    --color-info-800: oklch(0.35 0.09 240);
+    --color-info-900: oklch(0.25 0.07 240);
+
+    /* Success (Emerald) */
+    --color-success-50:  oklch(0.95 0.03 150);
+    --color-success-100: oklch(0.90 0.05 150);
+    --color-success-200: oklch(0.83 0.08 150);
+    --color-success-300: oklch(0.76 0.11 150);
+    --color-success-400: oklch(0.69 0.14 150);
+    --color-success-500: oklch(0.62 0.17 150); /* clean modern green */
+    --color-success-600: oklch(0.55 0.15 150);
+    --color-success-700: oklch(0.45 0.12 150);
+    --color-success-800: oklch(0.35 0.09 150);
+    --color-success-900: oklch(0.25 0.07 150);
+
+    /* Warning (Amber) */
+    --color-warning-50:  oklch(0.97 0.03 80);
+    --color-warning-100: oklch(0.94 0.05 80);
+    --color-warning-200: oklch(0.88 0.08 80);
+    --color-warning-300: oklch(0.82 0.11 80);
+    --color-warning-400: oklch(0.76 0.14 80);
+    --color-warning-500: oklch(0.70 0.17 80); /* warm amber */
+    --color-warning-600: oklch(0.63 0.15 80);
+    --color-warning-700: oklch(0.55 0.12 80);
+    --color-warning-800: oklch(0.45 0.09 80);
+    --color-warning-900: oklch(0.35 0.07 80);
+
+    /* Error (Magenta‑Red) */
+    --color-error-50:  oklch(0.96 0.03 15);
+    --color-error-100: oklch(0.92 0.06 15);
+    --color-error-200: oklch(0.86 0.10 15);
+    --color-error-300: oklch(0.80 0.14 15);
+    --color-error-400: oklch(0.74 0.18 15);
+    --color-error-500: oklch(0.68 0.22 15); /* pure red */
+    --color-error-600: oklch(0.60 0.20 15);
+    --color-error-700: oklch(0.50 0.17 15);
+    --color-error-800: oklch(0.40 0.14 15);
+    --color-error-900: oklch(0.30 0.10 15);
+}
