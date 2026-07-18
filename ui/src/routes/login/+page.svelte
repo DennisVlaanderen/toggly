@@ -1,37 +1,9 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
-	import { authenticateUser, getStoredUserRole } from '$lib/auth';
+	import { enhance } from '$app/forms';
+	import type { ActionData } from './$types';
 
-	let username = $state('');
-	let password = $state('');
-	let error = $state('');
+	let { form }: { form: ActionData } = $props();
 	let isSubmitting = $state(false);
-
-	async function handleSubmit(event: SubmitEvent) {
-		event.preventDefault();
-		error = '';
-		isSubmitting = true;
-
-		try {
-			const result = await authenticateUser(username, password);
-			if (!result.ok) {
-				error = result.message;
-				isSubmitting = false;
-				return;
-			}
-
-			const role = getStoredUserRole() ?? result.role;
-			await goto(`/dashboard?role=${role}`);
-		} catch {
-			error = 'Unable to reach the authentication service.';
-		} finally {
-			isSubmitting = false;
-		}
-	}
-
-	function clearError() {
-		error = '';
-	}
 </script>
 
 <svelte:head>
@@ -46,19 +18,29 @@
 			<p class="subtext">Sign in to continue to your workspace.</p>
 		</div>
 
-		<form onsubmit={handleSubmit} class="form-stack">
+		<form
+			method="POST"
+			class="form-stack"
+			use:enhance={() => {
+				isSubmitting = true;
+				return async ({ update }) => {
+					await update();
+					isSubmitting = false;
+				};
+			}}
+		>
 			<label class="field">
 				<span>Username</span>
-				<input bind:value={username} name="username" type="text" autocomplete="username" required oninput={clearError} />
+				<input name="username" type="text" autocomplete="username" required />
 			</label>
 
 			<label class="field">
 				<span>Password</span>
-				<input bind:value={password} name="password" type="password" autocomplete="current-password" required oninput={clearError} />
+				<input name="password" type="password" autocomplete="current-password" required />
 			</label>
 
-			{#if error}
-				<p class="error">{error}</p>
+			{#if form?.message}
+				<p class="error">{form.message}</p>
 			{/if}
 
 			<button type="submit" disabled={isSubmitting}>

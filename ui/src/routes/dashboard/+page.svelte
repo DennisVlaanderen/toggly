@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { page } from '$app/state';
+	import type { PageProps } from './$types';
 
-	const role = page.url.searchParams.get('role') ?? 'user';
-	const isAdmin = role === 'admin';
+	let { data }: PageProps = $props();
+	let isAdmin = $derived(data.role === 'admin');
 </script>
 
 <svelte:head>
@@ -12,7 +12,7 @@
 <div class="page-shell">
 	<div class="card">
 		<p class="eyebrow">{isAdmin ? 'Administrator view' : 'Member view'}</p>
-		<h1>Welcome, {role}</h1>
+		<h1>Welcome, {data.username}</h1>
 		<p class="subtext">You’ve been redirected here after a successful sign-in.</p>
 
 		<div class="stat-grid">

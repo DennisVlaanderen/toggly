@@ -9,6 +9,8 @@ services:
       TOGGLY_RAFT_DATA_DIR: /data
       TOGGLY_RAFT_BOOTSTRAP: "true"
       TOGGLY_JWT_SECRET: ${TOGGLY_JWT_SECRET:-toggly-dev-secret}
+      TOGGLY_ADMIN_USERNAME: ${TOGGLY_ADMIN_USERNAME:-admin}
+      TOGGLY_ADMIN_PASSWORD: ${TOGGLY_ADMIN_PASSWORD:-admin123}
     volumes:
       - toggly-raft-data:/data
     expose:
@@ -19,6 +21,8 @@ services:
     build:
       context: ./ui
       dockerfile: Dockerfile
+    environment:
+      TOGGLY_API_ORIGIN: http://backend:8080
     depends_on:
       - backend
     expose:
