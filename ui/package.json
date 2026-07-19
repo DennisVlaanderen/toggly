@@ -18,6 +18,9 @@
 	},
 	"devDependencies": {
 		"@eslint/js": "^10.0.1",
+		"@iconify-json/lucide": "^1.2.118",
+		"@iconify-json/lucide-lab": "^1.2.3",
+		"@iconify/tailwind4": "^1.2.3",
 		"@inlang/paraglide-js": "^2.18.2",
 		"@sveltejs/adapter-node": "^5.5.7",
 		"@sveltejs/kit": "^2.63.0",
