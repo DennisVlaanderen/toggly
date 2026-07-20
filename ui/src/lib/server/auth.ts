@@ -27,7 +27,10 @@ function parseUser(payload: unknown): Session | null {
 	return { username, role };
 }
 
-export async function login(username: string, password: string): Promise<{ token: string; user: Session } | null> {
+export async function login(
+	username: string,
+	password: string
+): Promise<{ token: string; user: Session } | null> {
 	const response = await fetch(`${API_ORIGIN}/api/auth/login`, {
 		method: 'POST',
 		headers: { 'content-type': 'application/json' },
@@ -75,4 +78,8 @@ export function setAuthCookie(cookies: Cookies, token: string) {
 
 export function clearAuthCookie(cookies: Cookies) {
 	cookies.delete(AUTH_COOKIE, { path: '/' });
+}
+
+export function getAuthToken(cookies: Cookies): string | null {
+	return cookies.get(AUTH_COOKIE) ?? null;
 }
