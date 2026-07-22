@@ -23,6 +23,8 @@ export async function listUsers(token: string): Promise<UserSummary[]> {
 		headers: { Authorization: `Bearer ${token}` }
 	});
 	if (!response.ok) {
+		// See the identical comment in lib/server/groups.ts's listGroups.
+		console.error(`listUsers: backend returned ${response.status}`);
 		return [];
 	}
 
@@ -56,11 +58,15 @@ export async function createUser(
 
 // An empty password means "leave it unchanged" -- mirrors the backend's own
 // usersPutHandler semantics (see backend/internal/api/users.go), so the edit
-// form never needs to round-trip the existing password hash.
+// form never needs to round-trip the existing password hash. groupIds is
+// similarly optional: omitting it (rather than sending []) tells the
+// backend to leave the user's existing group membership unchanged, which
+// matters when the caller can't see the full group list to specify a real
+// value in the first place.
 export async function updateUser(
 	token: string,
 	id: string,
-	input: { username: string; password: string; groupIds: string[]; active: boolean }
+	input: { username: string; password: string; groupIds?: string[]; active: boolean }
 ): Promise<UserResult> {
 	const response = await fetch(`${API_ORIGIN}/api/users/${encodeURIComponent(id)}`, {
 		method: 'PUT',

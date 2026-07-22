@@ -70,7 +70,12 @@ func NewService(secret string, s *store.Store) *Service {
 }
 
 func (s *Service) Authenticate(username, password string) (*User, error) {
-	u, ok := s.store.Users().GetByUsername(username)
+	// Usernames are stored lowercase (see api.usersPostHandler/usersPutHandler
+	// and SeedAdminGroupAndUser) precisely so lookups here don't need to
+	// special-case casing -- normalizing on both the write and read side is
+	// what makes "Admin" and "admin" collide instead of silently coexisting
+	// as distinct accounts.
+	u, ok := s.store.Users().GetByUsername(strings.ToLower(strings.TrimSpace(username)))
 	valid := ok && u.Active
 
 	hash := dummyPasswordHash
@@ -101,6 +106,25 @@ func (s *Service) GenerateToken(user *User) (string, error) {
 // from the token itself, so a renamed or deactivated user is reflected
 // immediately rather than only after the token expires.
 func (s *Service) ParseToken(tokenString string) (*User, error) {
+	userID, err := s.parseTokenSubject(tokenString)
+	if err != nil {
+		return nil, err
+	}
+
+	u, ok := s.store.Users().Get(userID)
+	if !ok || !u.Active {
+		return nil, errors.New("user not found or inactive")
+	}
+
+	return &User{ID: u.ID, Username: u.Username}, nil
+}
+
+// parseTokenSubject validates the token's signature/expiry and returns its
+// subject (user ID) claim, without touching the store -- split out of
+// ParseToken so AuthenticateToken can validate the token and fetch the user
+// exactly once, instead of ParseToken and Resolve each fetching it
+// independently.
+func (s *Service) parseTokenSubject(tokenString string) (string, error) {
 	trimmed := strings.TrimSpace(tokenString)
 	if strings.HasPrefix(strings.ToLower(trimmed), "bearer ") {
 		trimmed = strings.TrimSpace(trimmed[7:])
@@ -113,26 +137,40 @@ func (s *Service) ParseToken(tokenString string) (*User, error) {
 		return s.secretKey, nil
 	})
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	if !token.Valid {
-		return nil, errors.New("invalid token")
+		return "", errors.New("invalid token")
 	}
 
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
-		return nil, errors.New("invalid token claims")
+		return "", errors.New("invalid token claims")
 	}
 
 	userID, _ := claims["sub"].(string)
 	if userID == "" {
-		return nil, errors.New("missing subject claim")
+		return "", errors.New("missing subject claim")
+	}
+	return userID, nil
+}
+
+// AuthenticateToken validates a bearer token and resolves its principal and
+// permission set in a single store fetch of the user -- the combined form
+// api.authenticateRequest uses on every request, replacing what used to be
+// a ParseToken call followed by a separate Resolve call that each
+// independently fetched the same user record.
+func (s *Service) AuthenticateToken(tokenString string) (*User, PermissionSet, bool, error) {
+	userID, err := s.parseTokenSubject(tokenString)
+	if err != nil {
+		return nil, nil, false, err
 	}
 
 	u, ok := s.store.Users().Get(userID)
 	if !ok || !u.Active {
-		return nil, errors.New("user not found or inactive")
+		return nil, nil, false, errors.New("user not found or inactive")
 	}
 
-	return &User{ID: u.ID, Username: u.Username}, nil
+	perms, isAdmin := s.resolvePermissionsForUser(u)
+	return &User{ID: u.ID, Username: u.Username}, perms, isAdmin, nil
 }

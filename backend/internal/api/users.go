@@ -14,6 +14,11 @@ import (
 // rules) -- this is an internal admin tool, not a public consumer app.
 const minPasswordLength = 8
 
+// maxPasswordLength mirrors bcrypt's own 72-byte input limit -- rejecting an
+// oversized password here gives a clear 400 instead of letting
+// bcrypt.GenerateFromPassword fail and fall through to a generic 500.
+const maxPasswordLength = 72
+
 // userResponse never includes PasswordHash -- password hashes never leave
 // the store/auth layers.
 type userResponse struct {
@@ -61,7 +66,7 @@ func usersPostHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	username := strings.TrimSpace(payload.Username)
+	username := strings.ToLower(strings.TrimSpace(payload.Username))
 	if username == "" {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "username is required"})
 		return
@@ -74,8 +79,12 @@ func usersPostHandler(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "password must be at least 8 characters"})
 		return
 	}
+	if len(payload.Password) > maxPasswordLength {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "password must be at most 72 characters"})
+		return
+	}
 
-	if !requireAdminToGrantAdminGroup(w, r, payload.GroupIDs) {
+	if !requireAdminForAdminGroupChange(w, r, payload.GroupIDs) {
 		return
 	}
 
@@ -112,20 +121,29 @@ func usersPostHandler(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, toUserResponse(user))
 }
 
-// requireAdminToGrantAdminGroup returns false (having already written a 403
-// response) if groupIDs includes the Admin group and the acting principal
-// isn't already an admin themselves -- otherwise a users:write-only caller
-// could create or edit their way into a full admin account without ever
-// holding groups:write or admin rights. Applies whether the Admin group is
-// newly granted or merely retained on an edit; a users:write-only caller
-// should never be able to touch Admin group membership either way.
-func requireAdminToGrantAdminGroup(w http.ResponseWriter, r *http.Request, groupIDs []string) bool {
-	if !slices.Contains(groupIDs, store.AdminGroupID) {
+// requireAdminForAdminGroupChange returns false (having already written a
+// 403 response) if any of groupSets includes the Admin group and the acting
+// principal isn't already an admin themselves -- otherwise a
+// users:write-only caller could create/edit/delete their way into granting,
+// retaining, or revoking Admin group membership (including another admin's)
+// without ever holding groups:write or admin rights. Callers pass whichever
+// of a user's current and/or proposed group lists are relevant: touching
+// the Admin group from either side requires the caller to already be an
+// admin.
+func requireAdminForAdminGroupChange(w http.ResponseWriter, r *http.Request, groupSets ...[]string) bool {
+	touchesAdmin := false
+	for _, groupIDs := range groupSets {
+		if slices.Contains(groupIDs, store.AdminGroupID) {
+			touchesAdmin = true
+			break
+		}
+	}
+	if !touchesAdmin {
 		return true
 	}
 	principal, _ := principalFromContext(r)
 	if !principal.IsAdmin {
-		writeJSON(w, http.StatusForbidden, map[string]string{"error": "only an Admin can grant Admin group membership"})
+		writeJSON(w, http.StatusForbidden, map[string]string{"error": "only an Admin can modify Admin group membership"})
 		return false
 	}
 	return true
@@ -140,17 +158,17 @@ func usersPutHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var payload struct {
-		Username string   `json:"username"`
-		Password string   `json:"password"`
-		GroupIDs []string `json:"groupIds"`
-		Active   bool     `json:"active"`
+		Username string    `json:"username"`
+		Password string    `json:"password"`
+		GroupIDs *[]string `json:"groupIds"`
+		Active   bool      `json:"active"`
 	}
 	if err := decodeJSON(w, r, &payload); err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
 		return
 	}
 
-	username := strings.TrimSpace(payload.Username)
+	username := strings.ToLower(strings.TrimSpace(payload.Username))
 	if username == "" {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "username is required"})
 		return
@@ -159,8 +177,23 @@ func usersPutHandler(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "password must be at least 8 characters"})
 		return
 	}
+	if payload.Password != "" && len(payload.Password) > maxPasswordLength {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "password must be at most 72 characters"})
+		return
+	}
 
-	if !requireAdminToGrantAdminGroup(w, r, payload.GroupIDs) {
+	// A missing/nil groupIds field means "leave group membership unchanged"
+	// -- distinguishing "omitted" from "explicitly cleared" (via *[]string
+	// rather than []string) matters because a caller who can't see the full
+	// group list (e.g. missing groups:read, so the UI can't render group
+	// checkboxes at all) must still be able to edit a user's other fields
+	// without that inability silently wiping their group memberships.
+	groupIDs := existing.GroupIDs
+	if payload.GroupIDs != nil {
+		groupIDs = *payload.GroupIDs
+	}
+
+	if !requireAdminForAdminGroupChange(w, r, existing.GroupIDs, groupIDs) {
 		return
 	}
 
@@ -171,7 +204,7 @@ func usersPutHandler(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusConflict, map[string]string{"error": "username is already taken"})
 		return
 	}
-	for _, groupID := range payload.GroupIDs {
+	for _, groupID := range groupIDs {
 		if _, ok := dataStore.Groups().Get(groupID); !ok {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "unknown group id: " + groupID})
 			return
@@ -196,7 +229,7 @@ func usersPutHandler(w http.ResponseWriter, r *http.Request) {
 		ID:           existing.ID,
 		Username:     username,
 		PasswordHash: passwordHash,
-		GroupIDs:     payload.GroupIDs,
+		GroupIDs:     groupIDs,
 		Active:       payload.Active,
 	})
 	if err != nil {
@@ -208,8 +241,17 @@ func usersPutHandler(w http.ResponseWriter, r *http.Request) {
 
 func usersDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-	if _, ok := dataStore.Users().Get(id); !ok {
+	existing, ok := dataStore.Users().Get(id)
+	if !ok {
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "user not found"})
+		return
+	}
+
+	// A users:write-only caller must never be able to remove an admin
+	// account -- store.ErrLastAdmin only protects the *sole* remaining
+	// admin, so without this check a non-admin could still delete any
+	// other admin as long as at least one more remained.
+	if !requireAdminForAdminGroupChange(w, r, existing.GroupIDs) {
 		return
 	}
 

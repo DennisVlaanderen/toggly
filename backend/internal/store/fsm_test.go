@@ -2,6 +2,8 @@ package store
 
 import (
 	"errors"
+	"io"
+	"strings"
 	"testing"
 )
 
@@ -42,6 +44,32 @@ func TestFSMSnapshotRestoreRoundTripAllEntities(t *testing.T) {
 	restoredAdmin, ok := restored.groups[AdminGroupID]
 	if !ok || !restoredAdmin.System {
 		t.Fatalf("expected Admin group to round-trip with System=true, got %+v (ok=%v)", restoredAdmin, ok)
+	}
+}
+
+// TestFSMRestoreRejectsPreUserGroupSnapshotFormat guards against silently
+// discarding pre-existing flags on upgrade: an old snapshot was a flat
+// map[string]Flag with no "flags"/"users"/"groups" top-level keys, which
+// (before this test's fix) decoded "successfully" into three nil maps with
+// no error, silently losing every previously stored flag.
+func TestFSMRestoreRejectsPreUserGroupSnapshotFormat(t *testing.T) {
+	f := newFSM()
+	legacy := `{"checkout": {"key": "checkout", "enabled": true, "version": 1}}`
+	err := f.Restore(io.NopCloser(strings.NewReader(legacy)))
+	if err == nil {
+		t.Fatal("expected Restore to reject an unrecognized pre-user/group snapshot format")
+	}
+}
+
+// TestFSMRestoreToleratesEmptySnapshot guards the legitimate case Restore
+// must still accept: a brand-new node with no snapshot taken yet.
+func TestFSMRestoreToleratesEmptySnapshot(t *testing.T) {
+	f := newFSM()
+	if err := f.Restore(io.NopCloser(strings.NewReader(""))); err != nil {
+		t.Fatalf("expected Restore to tolerate an empty snapshot, got %v", err)
+	}
+	if f.flags == nil || f.users == nil || f.groups == nil {
+		t.Fatalf("expected all three maps to default to empty, got flags=%v users=%v groups=%v", f.flags, f.users, f.groups)
 	}
 }
 

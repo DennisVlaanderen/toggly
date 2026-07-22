@@ -55,7 +55,11 @@
 			})
 		});
 
-		updatingId = null;
+		// Only clear updatingId if it's still this row's -- see the identical
+		// comment in dashboard/users/+page.svelte's handleUpdate.
+		if (updatingId === group.id) {
+			updatingId = null;
+		}
 		if (result.error) {
 			updateErrors[group.id] = result.error;
 			return;

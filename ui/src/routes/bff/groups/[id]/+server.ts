@@ -10,10 +10,10 @@ export const PUT: RequestHandler = async ({ request, cookies, params }) => {
 		return json({ error: 'You do not have permission to manage groups.' }, { status: 403 });
 	}
 
-	if (params.id === 'admin') {
-		return json({ error: "The Admin group can't be modified." }, { status: 403 });
-	}
-
+	// No pre-check for the Admin group here -- the backend is the single
+	// source of truth (store.ErrProtectedSystemGroup, mapped to a 403), so
+	// this route just forwards whatever it says instead of duplicating the
+	// rule against a raw 'admin' string literal.
 	const body = await request.json().catch(() => null);
 	const name = typeof body?.name === 'string' ? body.name.trim() : '';
 	const permissions = Array.isArray(body?.permissions) ? body.permissions.map(String) : [];
@@ -39,10 +39,8 @@ export const DELETE: RequestHandler = async ({ cookies, params }) => {
 		return json({ error: 'You do not have permission to manage groups.' }, { status: 403 });
 	}
 
-	if (params.id === 'admin') {
-		return json({ error: "The Admin group can't be modified." }, { status: 403 });
-	}
-
+	// No pre-check for the Admin group here -- see the identical comment in
+	// PUT above.
 	const token = getAuthToken(cookies);
 	const result = token
 		? await deleteGroup(token, params.id)

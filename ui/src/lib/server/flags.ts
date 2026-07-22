@@ -14,6 +14,8 @@ export async function listFlags(token: string): Promise<FlagSummary[]> {
 		headers: { Authorization: `Bearer ${token}` }
 	});
 	if (!response.ok) {
+		// See the identical comment in lib/server/groups.ts's listGroups.
+		console.error(`listFlags: backend returned ${response.status}`);
 		return [];
 	}
 

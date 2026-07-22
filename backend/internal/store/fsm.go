@@ -122,9 +122,34 @@ func (f *fsm) Snapshot() (raft.FSMSnapshot, error) {
 func (f *fsm) Restore(rc io.ReadCloser) error {
 	defer rc.Close()
 
+	raw, err := io.ReadAll(rc)
+	if err != nil {
+		return fmt.Errorf("read snapshot: %w", err)
+	}
+
 	var doc snapshotDoc
-	if err := json.NewDecoder(rc).Decode(&doc); err != nil && err != io.EOF {
-		return fmt.Errorf("decode snapshot: %w", err)
+	if len(raw) > 0 {
+		// Detect a pre-user/group snapshot (a flat map[string]Flag, with no
+		// "flags"/"users"/"groups" top-level keys at all) before decoding
+		// into snapshotDoc -- otherwise it decodes "successfully" into three
+		// nil maps, silently discarding every previously stored flag with no
+		// error and no log line. A non-empty raw snapshot that matches
+		// neither shape is exactly the breaking-change case the comment on
+		// the command type above warns about; fail loudly instead of
+		// quietly booting empty.
+		var probe map[string]json.RawMessage
+		if err := json.Unmarshal(raw, &probe); err != nil {
+			return fmt.Errorf("decode snapshot: %w", err)
+		}
+		_, hasFlags := probe["flags"]
+		_, hasUsers := probe["users"]
+		_, hasGroups := probe["groups"]
+		if !hasFlags && !hasUsers && !hasGroups {
+			return fmt.Errorf("snapshot is in an unrecognized (pre-user/group) format; wipe the raft data directory and restart so state rebuilds from a fresh snapshot")
+		}
+		if err := json.Unmarshal(raw, &doc); err != nil {
+			return fmt.Errorf("decode snapshot: %w", err)
+		}
 	}
 	if doc.Flags == nil {
 		doc.Flags = make(map[string]Flag)

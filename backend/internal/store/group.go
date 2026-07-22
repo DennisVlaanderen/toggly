@@ -1,6 +1,17 @@
 package store
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
+
+// ErrProtectedSystemGroup is returned by GroupRepository.Set/Delete (and,
+// ultimately, fsm.applyGroup) when the target group has System set --
+// currently only the Admin group. The single sentinel is what lets api's
+// writeStoreError map this to a 403 without every caller needing its own
+// pre-check keyed on AdminGroupID; errors.Is-comparable like
+// ErrUsernameTaken/ErrLastAdmin.
+var ErrProtectedSystemGroup = errors.New("this group is a protected system group and cannot be modified or deleted")
 
 // Group is a named set of permissions that can be assigned to users.
 //
@@ -22,14 +33,14 @@ func (f *fsm) applyGroup(index uint64, cmd command) interface{} {
 	switch cmd.Op {
 	case opSet:
 		if existing, ok := f.groups[cmd.Group.ID]; ok && existing.System {
-			return fmt.Errorf("group %q is a protected system group and cannot be modified", existing.ID)
+			return fmt.Errorf("%w: %q", ErrProtectedSystemGroup, existing.ID)
 		}
 		cmd.Group.Version = index
 		f.groups[cmd.Group.ID] = *cmd.Group
 		return *cmd.Group
 	case opDelete:
 		if existing, ok := f.groups[cmd.Key]; ok && existing.System {
-			return fmt.Errorf("group %q is a protected system group and cannot be deleted", existing.ID)
+			return fmt.Errorf("%w: %q", ErrProtectedSystemGroup, existing.ID)
 		}
 		delete(f.groups, cmd.Key)
 		return nil
@@ -76,7 +87,7 @@ func (r GroupRepository) List() []Group {
 // fsm.Apply enforces the same rule as the ultimate source of truth.
 func (r GroupRepository) Set(group Group) (Group, error) {
 	if existing, ok := r.store.fsm.getGroup(group.ID); ok && existing.System {
-		return Group{}, fmt.Errorf("group %q is a protected system group and cannot be modified", existing.ID)
+		return Group{}, fmt.Errorf("%w: %q", ErrProtectedSystemGroup, existing.ID)
 	}
 
 	resp, err := r.store.apply(command{Op: opSet, Entity: entityGroup, Group: &group})
@@ -96,7 +107,7 @@ func (r GroupRepository) Set(group Group) (Group, error) {
 // Delete removes a group by ID. The Admin group can never be deleted.
 func (r GroupRepository) Delete(id string) error {
 	if existing, ok := r.store.fsm.getGroup(id); ok && existing.System {
-		return fmt.Errorf("group %q is a protected system group and cannot be deleted", existing.ID)
+		return fmt.Errorf("%w: %q", ErrProtectedSystemGroup, existing.ID)
 	}
 
 	resp, err := r.store.apply(command{Op: opDelete, Entity: entityGroup, Key: id})

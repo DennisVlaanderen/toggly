@@ -29,15 +29,9 @@ func authenticateRequest(w http.ResponseWriter, r *http.Request) (resolvedPrinci
 		return resolvedPrincipal{}, false
 	}
 
-	principal, err := authService.ParseToken(authorization)
+	principal, perms, isAdmin, err := authService.AuthenticateToken(authorization)
 	if err != nil {
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid token"})
-		return resolvedPrincipal{}, false
-	}
-
-	perms, isAdmin, err := authService.Resolve(principal.ID)
-	if err != nil {
-		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid session"})
 		return resolvedPrincipal{}, false
 	}
 

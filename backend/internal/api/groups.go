@@ -17,10 +17,21 @@ type groupResponse struct {
 }
 
 func toGroupResponse(g store.Group) groupResponse {
+	// g.Permissions is nil for a group with no permissions assigned (the
+	// "omitempty" on store.Group.Permissions drops an empty slice entirely
+	// when the command is JSON-encoded for the Raft log, so it comes back
+	// nil after Apply, even if the original request sent an empty array).
+	// Normalize to a non-nil slice here so API clients always see a real
+	// array, never null -- mirrors toUserResponse's identical fix for
+	// GroupIDs.
+	permissions := g.Permissions
+	if permissions == nil {
+		permissions = []string{}
+	}
 	return groupResponse{
 		ID:          g.ID,
 		Name:        g.Name,
-		Permissions: g.Permissions,
+		Permissions: permissions,
 		System:      g.System,
 	}
 }
@@ -69,11 +80,11 @@ func groupsPostHandler(w http.ResponseWriter, r *http.Request) {
 
 func groupsPutHandler(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-	if id == store.AdminGroupID {
-		writeJSON(w, http.StatusForbidden, map[string]string{"error": "the Admin group cannot be modified"})
-		return
-	}
 
+	// No pre-check for the Admin group here -- dataStore.Groups().Set below
+	// is the single source of truth (System-flag protected) and returns
+	// store.ErrProtectedSystemGroup, which writeStoreError maps to the same
+	// 403 a duplicated ID check here would have produced.
 	existing, ok := dataStore.Groups().Get(id)
 	if !ok {
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "group not found"})
@@ -114,11 +125,10 @@ func groupsPutHandler(w http.ResponseWriter, r *http.Request) {
 
 func groupsDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-	if id == store.AdminGroupID {
-		writeJSON(w, http.StatusForbidden, map[string]string{"error": "the Admin group cannot be modified"})
-		return
-	}
 
+	// No pre-check for the Admin group here -- see the identical comment in
+	// groupsPutHandler; dataStore.Groups().Delete is the single source of
+	// truth.
 	if _, ok := dataStore.Groups().Get(id); !ok {
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "group not found"})
 		return

@@ -13,7 +13,11 @@ export const PUT: RequestHandler = async ({ request, cookies, params }) => {
 	const body = await request.json().catch(() => null);
 	const username = typeof body?.username === 'string' ? body.username.trim() : '';
 	const password = typeof body?.password === 'string' ? body.password : '';
-	const groupIds = Array.isArray(body?.groupIds) ? body.groupIds.map(String) : [];
+	// undefined (not []) when the field is absent -- distinguishes "the
+	// caller didn't specify groups" from "the caller wants no groups", so
+	// updateUser can omit the field and the backend leaves group membership
+	// unchanged instead of clearing it.
+	const groupIds = Array.isArray(body?.groupIds) ? body.groupIds.map(String) : undefined;
 	const active = body?.active === true;
 
 	if (!username) {

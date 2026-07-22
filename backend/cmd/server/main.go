@@ -27,10 +27,6 @@ func main() {
 	}
 	defer flagStore.Close()
 
-	if err := auth.SeedAdminGroupAndUser(flagStore, adminConfigFromEnvironment()); err != nil {
-		log.Fatalf("failed to seed admin account: %v", err)
-	}
-
 	go func() {
 		if err := fqdp.StartTCPServer(ctx, ":9000"); err != nil {
 			log.Printf("fqdp server stopped: %v", err)
@@ -51,6 +47,10 @@ func main() {
 			log.Fatalf("http server failed: %v", err)
 		}
 	}()
+
+	if err := auth.SeedAdminGroupAndUser(flagStore, adminConfigFromEnvironment()); err != nil {
+		log.Fatalf("failed to seed admin account: %v", err)
+	}
 
 	<-ctx.Done()
 	log.Println("shutdown requested")

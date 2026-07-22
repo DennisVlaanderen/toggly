@@ -486,6 +486,127 @@ func TestUsersDeleteRejectsSoleRemainingAdmin(t *testing.T) {
 	}
 }
 
+// TestUsersDeleteRejectsNonAdminDeletingAnotherAdmin guards a distinct gap
+// from the sole-remaining-admin protection above: even when another admin
+// exists (so store.ErrLastAdmin doesn't fire), a caller who only holds
+// users:write -- not admin themselves -- must never be able to delete an
+// admin account.
+func TestUsersDeleteRejectsNonAdminDeletingAnotherAdmin(t *testing.T) {
+	mux := newTestMux(t)
+	adminID := idFromToken(t, mux, adminToken(t))
+	nonAdminToken := tokenFor(t, auth.PermUsersWrite)
+
+	req := httptest.NewRequest(http.MethodDelete, "/api/users/"+adminID, nil)
+	req.Header.Set("Authorization", "Bearer "+nonAdminToken)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 for a non-admin users:write caller deleting an admin, got %d: %s", rec.Code, rec.Body.String())
+	}
+	if _, ok := dataStore.Users().Get(adminID); !ok {
+		t.Fatal("expected the admin account to still exist after a rejected delete")
+	}
+}
+
+// TestUsersPutRejectsNonAdminRemovingAnotherAdminsAdminGroup guards the
+// removal side of Admin group membership: a non-admin users:write caller
+// must not be able to strip another admin's Admin group membership just
+// because the proposed new group list happens to omit it.
+func TestUsersPutRejectsNonAdminRemovingAnotherAdminsAdminGroup(t *testing.T) {
+	mux := newTestMux(t)
+	adminID := idFromToken(t, mux, adminToken(t))
+	// A second admin so this isn't blocked by store.ErrLastAdmin instead.
+	adminToken(t)
+	nonAdminToken := tokenFor(t, auth.PermUsersWrite)
+
+	body, _ := json.Marshal(map[string]any{"username": "user-" + adminID, "groupIds": []string{}, "active": true})
+	req := httptest.NewRequest(http.MethodPut, "/api/users/"+adminID, bytes.NewReader(body))
+	req.Header.Set("Authorization", "Bearer "+nonAdminToken)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 for a non-admin users:write caller removing another admin's Admin group membership, got %d: %s", rec.Code, rec.Body.String())
+	}
+	got, ok := dataStore.Users().Get(adminID)
+	if !ok || len(got.GroupIDs) == 0 {
+		t.Fatalf("expected the target admin to keep Admin group membership, got %+v (ok=%v)", got, ok)
+	}
+}
+
+// TestUsersPutOmittingGroupIDsPreservesExistingMembership guards the fix
+// for a silent-data-loss gap: a caller who can't see the full group list
+// (e.g. missing groups:read, so the UI can't render group checkboxes at
+// all) must still be able to edit a user's other fields without an omitted
+// groupIds field being treated as "clear all groups".
+func TestUsersPutOmittingGroupIDsPreservesExistingMembership(t *testing.T) {
+	mux := newTestMux(t)
+	token := tokenFor(t, auth.PermUsersWrite, auth.PermGroupsWrite)
+	if _, err := dataStore.Groups().Set(store.Group{ID: "editors", Name: "Editors"}); err != nil {
+		t.Fatalf("create editors group: %v", err)
+	}
+	id := createUser(t, mux, token, "keepgroups", "s3cret!!", []string{"editors"})
+
+	// No "groupIds" key at all in this body -- distinct from an explicit [].
+	body, _ := json.Marshal(map[string]any{"username": "keepgroups", "active": true})
+	req := httptest.NewRequest(http.MethodPut, "/api/users/"+id, bytes.NewReader(body))
+	req.Header.Set("Authorization", "Bearer "+token)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	got, ok := dataStore.Users().Get(id)
+	if !ok || len(got.GroupIDs) != 1 || got.GroupIDs[0] != "editors" {
+		t.Fatalf("expected groupIds to be left unchanged when omitted, got %+v (ok=%v)", got.GroupIDs, ok)
+	}
+}
+
+// TestUsersPostRejectsOversizedPassword guards the fix that maps a password
+// over bcrypt's 72-byte input limit to a 400, rather than letting
+// bcrypt.GenerateFromPassword fail and fall through to a generic 500.
+func TestUsersPostRejectsOversizedPassword(t *testing.T) {
+	mux := newTestMux(t)
+
+	body, _ := json.Marshal(map[string]any{"username": "longpw", "password": strings.Repeat("a", 73)})
+	req := httptest.NewRequest(http.MethodPost, "/api/users", bytes.NewReader(body))
+	req.Header.Set("Authorization", "Bearer "+tokenFor(t, auth.PermUsersWrite))
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for an oversized password, got %d: %s", rec.Code, rec.Body.String())
+	}
+}
+
+// TestUsersUsernameIsCaseInsensitive guards against "admin" and "Admin"
+// coexisting as distinct accounts: usernames are normalized to lowercase on
+// create, so a differently-cased username collides with an existing one.
+func TestUsersUsernameIsCaseInsensitive(t *testing.T) {
+	mux := newTestMux(t)
+	token := tokenFor(t, auth.PermUsersWrite)
+
+	body, _ := json.Marshal(map[string]any{"username": "CaseTest", "password": "s3cret!!"})
+	req := httptest.NewRequest(http.MethodPost, "/api/users", bytes.NewReader(body))
+	req.Header.Set("Authorization", "Bearer "+token)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("expected first create to succeed, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	body2, _ := json.Marshal(map[string]any{"username": "casetest", "password": "s3cret!!"})
+	req2 := httptest.NewRequest(http.MethodPost, "/api/users", bytes.NewReader(body2))
+	req2.Header.Set("Authorization", "Bearer "+token)
+	rec2 := httptest.NewRecorder()
+	mux.ServeHTTP(rec2, req2)
+	if rec2.Code != http.StatusConflict {
+		t.Fatalf("expected 409 for a username differing only in case, got %d: %s", rec2.Code, rec2.Body.String())
+	}
+}
+
 // TestUsersDeleteAllowsAdminWhenAnotherAdminRemains checks the flip side:
 // the protection is specifically about the *last* admin, not admins in
 // general, so deleting one of several admins must still work.

@@ -70,6 +70,15 @@ func (s *Service) Resolve(userID string) (perms PermissionSet, isAdmin bool, err
 		return nil, false, errors.New("user not found or inactive")
 	}
 
+	perms, isAdmin = s.resolvePermissionsForUser(u)
+	return perms, isAdmin, nil
+}
+
+// resolvePermissionsForUser computes the effective permission set for an
+// already-fetched user record, without an additional store lookup -- the
+// shared logic behind both Resolve and AuthenticateToken (service.go), so a
+// call site that already has the user in hand never re-fetches it.
+func (s *Service) resolvePermissionsForUser(u store.User) (perms PermissionSet, isAdmin bool) {
 	perms = PermissionSet{}
 	for _, groupID := range u.GroupIDs {
 		g, ok := s.store.Groups().Get(groupID)
@@ -77,11 +86,11 @@ func (s *Service) Resolve(userID string) (perms PermissionSet, isAdmin bool, err
 			continue
 		}
 		if g.ID == store.AdminGroupID && g.System {
-			return nil, true, nil
+			return nil, true
 		}
 		for _, perm := range g.Permissions {
 			perms[perm] = struct{}{}
 		}
 	}
-	return perms, false, nil
+	return perms, false
 }

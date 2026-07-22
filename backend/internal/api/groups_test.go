@@ -3,11 +3,13 @@ package api
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"toggly/backend/internal/auth"
+	"toggly/backend/internal/store"
 )
 
 func TestGroupsPostRejectsUnknownPermission(t *testing.T) {
@@ -88,6 +90,62 @@ func TestGroupsFullCRUDForNonSystemGroup(t *testing.T) {
 	if bytes.Contains(listRec.Body.Bytes(), []byte("Editors v2")) {
 		t.Fatalf("expected deleted group to be gone from the list, got %s", listRec.Body.String())
 	}
+}
+
+// TestGroupsResponsesNeverReturnNullPermissions guards against a regression
+// where a group with no permissions serialized as "permissions":null instead
+// of "permissions":[] -- store.Group.Permissions comes back nil (not an
+// empty slice) after a Raft round-trip because of the "omitempty" JSON tag,
+// and the dashboard/groups UI calls .includes() on it unconditionally.
+func TestGroupsResponsesNeverReturnNullPermissions(t *testing.T) {
+	mux := newTestMux(t)
+	token := tokenFor(t, auth.PermGroupsWrite, auth.PermGroupsRead)
+
+	body, _ := json.Marshal(map[string]any{"name": "NoPerms", "permissions": []string{}})
+	req := httptest.NewRequest(http.MethodPost, "/api/groups", bytes.NewReader(body))
+	req.Header.Set("Authorization", "Bearer "+token)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", rec.Code, rec.Body.String())
+	}
+	if bytes.Contains(rec.Body.Bytes(), []byte(`"permissions":null`)) {
+		t.Fatalf("expected create response to never have null permissions, got %s", rec.Body.String())
+	}
+
+	getReq := httptest.NewRequest(http.MethodGet, "/api/groups", nil)
+	getReq.Header.Set("Authorization", "Bearer "+token)
+	getRec := httptest.NewRecorder()
+	mux.ServeHTTP(getRec, getReq)
+	if bytes.Contains(getRec.Body.Bytes(), []byte(`"permissions":null`)) {
+		t.Fatalf("expected list response to never have null permissions, got %s", getRec.Body.String())
+	}
+}
+
+// TestAdminGroupProtectionAppliesEvenWithoutAPILayerPreCheck guards the
+// consolidated protection: groupsPutHandler/groupsDeleteHandler no longer
+// pre-check the Admin group ID themselves, relying entirely on
+// store.GroupRepository returning store.ErrProtectedSystemGroup. This
+// exercises that store-layer path directly to make sure removing the
+// API-layer duplication didn't quietly drop the protection.
+func TestAdminGroupProtectionAppliesEvenWithoutAPILayerPreCheck(t *testing.T) {
+	mux := newTestMux(t)
+	if _, ok := dataStore.Groups().Get(store.AdminGroupID); !ok {
+		if _, err := dataStore.Groups().Set(store.Group{ID: store.AdminGroupID, Name: "Admin", System: true}); err != nil {
+			t.Fatalf("seed admin group: %v", err)
+		}
+	}
+
+	if _, err := dataStore.Groups().Set(store.Group{ID: store.AdminGroupID, Name: "Renamed"}); err == nil {
+		t.Fatal("expected Set on the Admin group to fail")
+	} else if !errors.Is(err, store.ErrProtectedSystemGroup) {
+		t.Fatalf("expected ErrProtectedSystemGroup, got %v", err)
+	}
+	if err := dataStore.Groups().Delete(store.AdminGroupID); !errors.Is(err, store.ErrProtectedSystemGroup) {
+		t.Fatalf("expected ErrProtectedSystemGroup, got %v", err)
+	}
+
+	_ = mux
 }
 
 func TestGroupsDeleteReturnsNotFoundForUnknownGroup(t *testing.T) {

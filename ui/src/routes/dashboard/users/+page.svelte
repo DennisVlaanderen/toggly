@@ -42,22 +42,39 @@
 
 	async function handleUpdate(event: SubmitEvent, user: UserSummary) {
 		event.preventDefault();
-		const data = new FormData(event.currentTarget as HTMLFormElement);
+		const formData = new FormData(event.currentTarget as HTMLFormElement);
 
 		updatingId = user.id;
 		updateErrors[user.id] = '';
 
+		// groupIds is only included when the checkboxes were actually
+		// rendered (data.groups.length > 0, see the template below) -- if the
+		// caller can't see the full group list (e.g. missing groups:read),
+		// there's no way for them to have specified a real value here, and
+		// omitting the field leaves the backend to keep the user's existing
+		// group membership unchanged instead of silently clearing it.
+		const payload: Record<string, unknown> = {
+			username: (formData.get('username') ?? '').toString(),
+			password: (formData.get('password') ?? '').toString(),
+			active: formData.get('active') === 'on'
+		};
+		if (data.groups.length > 0) {
+			payload.groupIds = formData.getAll('groupIds').map(String);
+		}
+
 		const result = await apiRequest(`/bff/users/${encodeURIComponent(user.id)}`, {
 			method: 'PUT',
-			body: JSON.stringify({
-				username: (data.get('username') ?? '').toString(),
-				password: (data.get('password') ?? '').toString(),
-				groupIds: data.getAll('groupIds').map(String),
-				active: data.get('active') === 'on'
-			})
+			body: JSON.stringify(payload)
 		});
 
-		updatingId = null;
+		// Only clear updatingId if it's still this row's -- otherwise a
+		// slower-to-resolve edit on another row (submitted after this one but
+		// finishing later) would have already overwritten it, and clearing it
+		// here would incorrectly re-enable that other row's submit button
+		// while its request is still in flight.
+		if (updatingId === user.id) {
+			updatingId = null;
+		}
 		if (result.error) {
 			updateErrors[user.id] = result.error;
 			return;

@@ -33,6 +33,14 @@ export async function listGroups(token: string): Promise<GroupSummary[]> {
 		headers: { Authorization: `Bearer ${token}` }
 	});
 	if (!response.ok) {
+		// A non-OK response (403 missing groups:read, 401, 500, ...) is
+		// deliberately still surfaced to the caller as an empty list rather
+		// than thrown -- group data is often optional context for another
+		// page (e.g. populating checkboxes on the Users page), and a caller
+		// lacking groups:read should still be able to use that page. Logging
+		// here at least keeps the failure visible server-side instead of
+		// being indistinguishable from a genuinely empty list.
+		console.error(`listGroups: backend returned ${response.status}`);
 		return [];
 	}
 

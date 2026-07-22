@@ -45,6 +45,22 @@ func TestAuthenticateUsesConfiguredAdminCredentials(t *testing.T) {
 	}
 }
 
+// TestAuthenticateIsCaseInsensitiveForUsername guards against "admin" and
+// "Admin" being treated as distinct accounts: logging in with a differently
+// cased username than the one used at seed/creation time must still
+// succeed, since usernames are normalized to lowercase on write.
+func TestAuthenticateIsCaseInsensitiveForUsername(t *testing.T) {
+	service, _ := newTestService(t, DefaultAdminConfig())
+
+	user, err := service.Authenticate("Admin", "admin123")
+	if err != nil {
+		t.Fatalf("expected a differently-cased username to still authenticate: %v", err)
+	}
+	if user.Username != "admin" {
+		t.Fatalf("expected stored username %q, got %q", "admin", user.Username)
+	}
+}
+
 func TestAuthenticateFailsForUnknownUsername(t *testing.T) {
 	service, _ := newTestService(t, DefaultAdminConfig())
 
