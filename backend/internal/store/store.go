@@ -2,11 +2,17 @@ package store
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/hashicorp/raft"
 )
+
+// ErrNotLeader is returned (wrapped) by any mutation when the local node
+// isn't the current Raft leader. Callers that want to tolerate this (e.g.
+// bootstrap seeding on a follower) can check it with errors.Is.
+var ErrNotLeader = errors.New("not the raft leader")
 
 // Config describes how to open or bootstrap a Raft-backed Store.
 type Config struct {
@@ -16,7 +22,11 @@ type Config struct {
 	Bootstrap bool
 }
 
-// Store is an embedded, Raft-replicated key/value store for feature flags.
+// Store is an embedded, Raft-replicated key/value store for feature flags,
+// users, and groups. Entity-specific operations are grouped into
+// repositories (Flags/Users/Groups) rather than living directly on Store,
+// so adding a new entity in the future means adding a repository, not
+// growing this type.
 type Store struct {
 	raft *raft.Raft
 	fsm  *fsm
@@ -31,38 +41,37 @@ func Open(cfg Config) (*Store, error) {
 	return &Store{raft: r, fsm: fsmStore}, nil
 }
 
-// Get returns the current value of a flag, if it exists.
-func (s *Store) Get(key string) (Flag, bool) {
-	return s.fsm.get(key)
-}
+// Flags returns a repository for flag operations against the store.
+func (s *Store) Flags() FlagRepository { return FlagRepository{store: s} }
 
-// List returns all known flags.
-func (s *Store) List() []Flag {
-	return s.fsm.list()
-}
+// Users returns a repository for user operations against the store.
+func (s *Store) Users() UserRepository { return UserRepository{store: s} }
 
-// Set applies a flag change through Raft consensus. It only succeeds on the
-// cluster leader; with a single bootstrapped node that is always the case.
-func (s *Store) Set(flag Flag) (Flag, error) {
+// Groups returns a repository for group operations against the store.
+func (s *Store) Groups() GroupRepository { return GroupRepository{store: s} }
+
+// apply centralizes the boilerplate every mutating repository method needs:
+// confirm this node is the Raft leader, marshal the command, submit it via
+// raft.Apply, and surface any submission-level error. The caller still
+// type-asserts/switches on the returned response, since each entity command
+// can succeed with a different concrete type (Flag/User/Group) or fail with
+// an fsm-level business-rule error (e.g. ErrUsernameTaken) instead of a
+// submission error.
+func (s *Store) apply(cmd command) (any, error) {
 	if s.raft.State() != raft.Leader {
-		return Flag{}, fmt.Errorf("not the raft leader (leader is %q)", s.raft.Leader())
+		return nil, fmt.Errorf("%w (leader is %q)", ErrNotLeader, s.raft.Leader())
 	}
 
-	data, err := json.Marshal(command{Op: opSet, Flag: flag})
+	data, err := json.Marshal(cmd)
 	if err != nil {
-		return Flag{}, fmt.Errorf("encode command: %w", err)
+		return nil, fmt.Errorf("encode command: %w", err)
 	}
 
 	future := s.raft.Apply(data, 5*time.Second)
 	if err := future.Error(); err != nil {
-		return Flag{}, fmt.Errorf("apply command: %w", err)
+		return nil, fmt.Errorf("apply command: %w", err)
 	}
-
-	applied, ok := future.Response().(Flag)
-	if !ok {
-		return Flag{}, fmt.Errorf("unexpected apply response type %T", future.Response())
-	}
-	return applied, nil
+	return future.Response(), nil
 }
 
 // Close shuts down the Raft node.

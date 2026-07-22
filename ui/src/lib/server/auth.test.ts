@@ -34,27 +34,29 @@ describe('login', () => {
 		vi.unstubAllGlobals();
 	});
 
-	it('returns the token and user for the admin credentials', async () => {
+	it('returns the token for valid credentials', async () => {
 		vi.mocked(fetch).mockResolvedValueOnce(
-			jsonResponse(200, { token: 'abc', user: { username: 'admin', role: 'admin' } })
+			jsonResponse(200, { token: 'abc', user: { id: 'u1', username: 'admin' } })
 		);
 
 		const result = await login('admin', 'admin123');
 
-		expect(result).toEqual({ token: 'abc', user: { username: 'admin', role: 'admin' } });
+		expect(result).toEqual({ token: 'abc' });
 	});
 
 	it('returns null for rejected credentials', async () => {
-		vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(401, { error: 'invalid username or password' }));
+		vi.mocked(fetch).mockResolvedValueOnce(
+			jsonResponse(401, { error: 'invalid username or password' })
+		);
 
 		const result = await login('guest', 'wrong');
 
 		expect(result).toBeNull();
 	});
 
-	it('returns null when the backend response is missing a valid role', async () => {
+	it('returns null when the backend response is missing a token', async () => {
 		vi.mocked(fetch).mockResolvedValueOnce(
-			jsonResponse(200, { token: 'abc', user: { username: 'admin', role: 'superuser' } })
+			jsonResponse(200, { user: { id: 'u1', username: 'admin' } })
 		);
 
 		const result = await login('admin', 'admin123');
@@ -80,11 +82,22 @@ describe('getSession', () => {
 	});
 
 	it('returns the session when the backend confirms the token', async () => {
-		vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(200, { user: { username: 'user', role: 'user' } }));
+		vi.mocked(fetch).mockResolvedValueOnce(
+			jsonResponse(200, {
+				user: { id: 'u2', username: 'someone' },
+				isAdmin: false,
+				permissions: ['flags:read']
+			})
+		);
 
 		const result = await getSession(fakeCookies({ 'toggly.auth': 'a-token' }));
 
-		expect(result).toEqual({ username: 'user', role: 'user' });
+		expect(result).toEqual({
+			id: 'u2',
+			username: 'someone',
+			isAdmin: false,
+			permissions: ['flags:read']
+		});
 		expect(fetch).toHaveBeenCalledWith(
 			expect.stringContaining('/api/auth/me'),
 			expect.objectContaining({ headers: { Authorization: 'Bearer a-token' } })
@@ -95,6 +108,16 @@ describe('getSession', () => {
 		vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(401, { error: 'invalid token' }));
 
 		const result = await getSession(fakeCookies({ 'toggly.auth': 'stale-token' }));
+
+		expect(result).toBeNull();
+	});
+
+	it('returns null when isAdmin or permissions are missing from the response', async () => {
+		vi.mocked(fetch).mockResolvedValueOnce(
+			jsonResponse(200, { user: { id: 'u2', username: 'someone' } })
+		);
+
+		const result = await getSession(fakeCookies({ 'toggly.auth': 'a-token' }));
 
 		expect(result).toBeNull();
 	});

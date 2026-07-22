@@ -6,15 +6,45 @@
 	import { m } from '$lib/paraglide/messages.js';
 	import LocaleSwitcher from './LocaleSwitcher.svelte';
 	import type { FlagSummary } from '$lib/server/flags';
+	import { hasPermission } from '$lib/permissions';
 
-	let { flags, username }: { flags: FlagSummary[]; username: string } = $props();
+	let {
+		flags,
+		username,
+		isAdmin,
+		permissions
+	}: { flags: FlagSummary[]; username: string; isAdmin: boolean; permissions: string[] } = $props();
 
 	let collapsed = $state(false);
+	let userManagementOpen = $state(false);
+	let userManagementContainer: HTMLDivElement | undefined = $state();
+
+	const canSeeUsers = $derived(hasPermission({ isAdmin, permissions }, 'users:read'));
+	const canSeeGroups = $derived(hasPermission({ isAdmin, permissions }, 'groups:read'));
+	const canSeeUserManagement = $derived(canSeeUsers || canSeeGroups);
 
 	function isActive(pathname: string) {
 		return page.url.pathname === pathname || page.url.pathname.startsWith(`${pathname}/`);
 	}
+
+	function handleClickOutsideUserManagement(event: MouseEvent) {
+		if (
+			userManagementOpen &&
+			userManagementContainer &&
+			!userManagementContainer.contains(event.target as Node)
+		) {
+			userManagementOpen = false;
+		}
+	}
+
+	function handleKeydown(event: KeyboardEvent) {
+		if (event.key === 'Escape') {
+			userManagementOpen = false;
+		}
+	}
 </script>
+
+<svelte:window onclick={handleClickOutsideUserManagement} onkeydown={handleKeydown} />
 
 <aside
 	class="flex h-full flex-shrink-0 flex-col gap-5 border-r border-brand-100 bg-white p-5 transition-[width] duration-200 {collapsed
@@ -53,6 +83,64 @@
 			</span>
 			{#if !collapsed}<span>{m.nav_dashboard()}</span>{/if}
 		</a>
+
+		{#if canSeeUserManagement}
+			<div bind:this={userManagementContainer}>
+				<button
+					type="button"
+					class="flex w-full cursor-pointer items-center gap-2.5 truncate rounded-2xl px-2.5 py-2.5 font-semibold text-brand-800 hover:bg-accent-50 {isActive(
+						'/dashboard/users'
+					) || isActive('/dashboard/groups')
+						? 'bg-accent-100 text-brand-700'
+						: ''}"
+					aria-haspopup="true"
+					aria-expanded={userManagementOpen}
+					onclick={() => (userManagementOpen = !userManagementOpen)}
+				>
+					<span class="flex w-6 flex-shrink-0 justify-center" aria-hidden="true">
+						<span class="icon-[lucide--users] size-4"></span>
+					</span>
+					{#if !collapsed}
+						<span class="flex-1 text-left">{m.nav_user_management()}</span>
+						<span
+							class="icon-[lucide--chevron-down] size-3.5 text-accent-900/60 transition-transform duration-150 {userManagementOpen
+								? 'rotate-180'
+								: ''}"
+							aria-hidden="true"
+						></span>
+					{/if}
+				</button>
+
+				{#if userManagementOpen && !collapsed}
+					<div class="mt-1 ml-4 flex flex-col gap-1 border-l border-brand-100 pl-2.5">
+						{#if canSeeUsers}
+							<a
+								class="flex items-center gap-2.5 truncate rounded-2xl px-2.5 py-2 text-sm font-semibold text-brand-800 no-underline hover:bg-accent-50 {isActive(
+									'/dashboard/users'
+								)
+									? 'bg-accent-100 text-brand-700'
+									: ''}"
+								href={resolve(localizeHref('/dashboard/users') as Pathname)}
+							>
+								{m.nav_users()}
+							</a>
+						{/if}
+						{#if canSeeGroups}
+							<a
+								class="flex items-center gap-2.5 truncate rounded-2xl px-2.5 py-2 text-sm font-semibold text-brand-800 no-underline hover:bg-accent-50 {isActive(
+									'/dashboard/groups'
+								)
+									? 'bg-accent-100 text-brand-700'
+									: ''}"
+								href={resolve(localizeHref('/dashboard/groups') as Pathname)}
+							>
+								{m.nav_groups()}
+							</a>
+						{/if}
+					</div>
+				{/if}
+			</div>
+		{/if}
 
 		{#if !collapsed}
 			<p

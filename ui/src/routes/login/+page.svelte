@@ -1,11 +1,39 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
+	import { apiRequest } from '$lib/client/api';
 	import LocaleSwitcher from '$lib/components/LocaleSwitcher.svelte';
+	import { localizeHref } from '$lib/paraglide/runtime';
 	import { m } from '$lib/paraglide/messages.js';
-	import type { ActionData } from './$types';
+	import type { Pathname } from '$app/types';
 
-	let { form }: { form: ActionData } = $props();
 	let isSubmitting = $state(false);
+	let errorMessage = $state('');
+
+	async function handleSubmit(event: SubmitEvent) {
+		event.preventDefault();
+		const formEl = event.currentTarget as HTMLFormElement;
+		const data = new FormData(formEl);
+
+		isSubmitting = true;
+		errorMessage = '';
+
+		const result = await apiRequest('/bff/login', {
+			method: 'POST',
+			body: JSON.stringify({
+				username: (data.get('username') ?? '').toString(),
+				password: (data.get('password') ?? '').toString()
+			})
+		});
+
+		if (result.error) {
+			errorMessage = result.error;
+			isSubmitting = false;
+			return;
+		}
+
+		await goto(resolve(localizeHref('/dashboard') as Pathname));
+	}
 </script>
 
 <svelte:head>
@@ -28,17 +56,7 @@
 			<p class="mt-1 text-accent-900/70">{m.login_subtitle()}</p>
 		</div>
 
-		<form
-			method="POST"
-			class="grid gap-4"
-			use:enhance={() => {
-				isSubmitting = true;
-				return async ({ update }) => {
-					await update();
-					isSubmitting = false;
-				};
-			}}
-		>
+		<form method="POST" class="grid gap-4" onsubmit={handleSubmit}>
 			<label class="grid gap-1.5 font-semibold text-brand-800">
 				<span>{m.login_username_label()}</span>
 				<div class="relative">
@@ -73,10 +91,10 @@
 				</div>
 			</label>
 
-			{#if form?.message}
+			{#if errorMessage}
 				<p class="flex items-center gap-2 text-sm text-error-600">
 					<span class="icon-[lucide--circle-alert] size-4 shrink-0" aria-hidden="true"></span>
-					{form.message}
+					{errorMessage}
 				</p>
 			{/if}
 
@@ -92,7 +110,6 @@
 		<div class="mt-5 border-t border-brand-100 pt-4 text-sm text-accent-900/70">
 			<p>{m.login_demo_hint()}</p>
 			<p>{m.login_demo_admin()}</p>
-			<p>{m.login_demo_user()}</p>
 		</div>
 	</div>
 </div>

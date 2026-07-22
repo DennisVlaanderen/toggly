@@ -3,7 +3,7 @@
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
-	let isAdmin = $derived(data.role === 'admin');
+	let isAdmin = $derived(data.isAdmin);
 </script>
 
 <svelte:head>
