@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"os"
@@ -17,43 +18,44 @@ type apiResponse struct {
 
 const devJWTSecret = "toggly-dev-secret"
 
-var authService = auth.NewService(jwtSecretFromEnvironment(), adminConfigFromEnvironment())
-var flagStore *store.Store
+// authService and dataStore are package-level so every handler file in
+// this package can reach them without threading a receiver through every
+// function -- authService needs the store, so it can only be constructed
+// once RegisterRoutes receives it, not at package-init time.
+var authService *auth.Service
+var dataStore *store.Store
 
 func jwtSecretFromEnvironment() string {
 	secret := strings.TrimSpace(os.Getenv("TOGGLY_JWT_SECRET"))
 	if secret == "" {
+		if isProductionEnvironment() {
+			log.Fatal("TOGGLY_JWT_SECRET must be set when TOGGLY_ENV=production")
+		}
 		log.Println("TOGGLY_JWT_SECRET not set; using insecure development default")
 		return devJWTSecret
 	}
 	return secret
 }
 
-func adminConfigFromEnvironment() auth.AdminConfig {
-	defaults := auth.DefaultAdminConfig()
-
-	username := strings.TrimSpace(os.Getenv("TOGGLY_ADMIN_USERNAME"))
-	if username == "" {
-		username = defaults.Username
-	}
-
-	password := os.Getenv("TOGGLY_ADMIN_PASSWORD")
-	if strings.TrimSpace(password) == "" {
-		log.Println("TOGGLY_ADMIN_PASSWORD not set; using insecure development default")
-		password = defaults.Password
-	}
-
-	return auth.AdminConfig{Username: username, Password: password}
-}
-
-func RegisterRoutes(mux *http.ServeMux, flags *store.Store) {
-	flagStore = flags
+func RegisterRoutes(mux *http.ServeMux, s *store.Store) {
+	dataStore = s
+	authService = auth.NewService(jwtSecretFromEnvironment(), dataStore)
 
 	mux.HandleFunc("/api/health", healthHandler)
-	mux.HandleFunc("GET /api/flags", requireRoles(flagsGetHandler, auth.RoleAdmin, auth.RoleUser))
-	mux.HandleFunc("POST /api/flags", requireRoles(flagsPostHandler, auth.RoleAdmin))
+	mux.HandleFunc("GET /api/flags", requirePermission(auth.PermFlagsRead, flagsGetHandler))
+	mux.HandleFunc("POST /api/flags", requirePermission(auth.PermFlagsWrite, flagsPostHandler))
 	mux.HandleFunc("/api/auth/login", loginHandler)
 	mux.HandleFunc("/api/auth/me", meHandler)
+
+	mux.HandleFunc("GET /api/users", requirePermission(auth.PermUsersRead, usersGetHandler))
+	mux.HandleFunc("POST /api/users", requirePermission(auth.PermUsersWrite, usersPostHandler))
+	mux.HandleFunc("PUT /api/users/{id}", requirePermission(auth.PermUsersWrite, usersPutHandler))
+	mux.HandleFunc("DELETE /api/users/{id}", requirePermission(auth.PermUsersWrite, usersDeleteHandler))
+
+	mux.HandleFunc("GET /api/groups", requirePermission(auth.PermGroupsRead, groupsGetHandler))
+	mux.HandleFunc("POST /api/groups", requirePermission(auth.PermGroupsWrite, groupsPostHandler))
+	mux.HandleFunc("PUT /api/groups/{id}", requirePermission(auth.PermGroupsWrite, groupsPutHandler))
+	mux.HandleFunc("DELETE /api/groups/{id}", requirePermission(auth.PermGroupsWrite, groupsDeleteHandler))
 }
 
 func healthHandler(w http.ResponseWriter, r *http.Request) {
@@ -61,7 +63,7 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func flagsGetHandler(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]any{"flags": flagStore.List()})
+	writeJSON(w, http.StatusOK, map[string]any{"flags": dataStore.Flags().List()})
 }
 
 func flagsPostHandler(w http.ResponseWriter, r *http.Request) {
@@ -70,7 +72,7 @@ func flagsPostHandler(w http.ResponseWriter, r *http.Request) {
 		Enabled bool   `json:"enabled"`
 		Value   string `json:"value"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+	if err := decodeJSON(w, r, &payload); err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
 		return
 	}
@@ -79,9 +81,9 @@ func flagsPostHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	flag, err := flagStore.Set(store.Flag{Key: payload.Key, Enabled: payload.Enabled, Value: payload.Value})
+	flag, err := dataStore.Flags().Set(store.Flag{Key: payload.Key, Enabled: payload.Enabled, Value: payload.Value})
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		writeStoreError(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, flag)
@@ -97,7 +99,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		Username string `json:"username"`
 		Password string `json:"password"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+	if err := decodeJSON(w, r, &payload); err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
 		return
 	}
@@ -126,23 +128,58 @@ func meHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	authorization := r.Header.Get("Authorization")
-	if authorization == "" {
-		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing authorization header"})
+	principal, ok := authenticateRequest(w, r)
+	if !ok {
 		return
 	}
 
-	user, err := authService.ParseToken(authorization)
-	if err != nil {
-		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid token"})
-		return
-	}
-
-	writeJSON(w, http.StatusOK, map[string]any{"user": user})
+	writeJSON(w, http.StatusOK, map[string]any{
+		"user":        principal.User,
+		"isAdmin":     principal.IsAdmin,
+		"permissions": principal.Perms.Keys(),
+	})
 }
 
 func writeJSON(w http.ResponseWriter, status int, payload any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(payload)
+}
+
+// writeStoreError maps a store-layer error to an appropriate client
+// response: known, client-facing errors get a specific status and message;
+// anything else is logged server-side and returned as a generic 500 so
+// internal error text (paths, raft/bolt internals, etc.) never reaches the
+// client.
+func writeStoreError(w http.ResponseWriter, err error) {
+	if errors.Is(err, store.ErrUsernameTaken) {
+		writeJSON(w, http.StatusConflict, map[string]string{"error": "username is already taken"})
+		return
+	}
+	if errors.Is(err, store.ErrLastAdmin) {
+		writeJSON(w, http.StatusForbidden, map[string]string{"error": err.Error()})
+		return
+	}
+	log.Printf("api: internal error: %v", err)
+	writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
+}
+
+// maxRequestBodyBytes caps decoded JSON request bodies; generous for this
+// API's small payloads while preventing unbounded body reads.
+const maxRequestBodyBytes = 1 << 20 // 1 MiB
+
+// decodeJSON decodes r.Body into dst, capping the body size read via
+// http.MaxBytesReader first so an oversized body fails the decode instead
+// of being fully buffered.
+func decodeJSON(w http.ResponseWriter, r *http.Request, dst any) error {
+	r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodyBytes)
+	return json.NewDecoder(r.Body).Decode(dst)
+}
+
+// isProductionEnvironment reports whether TOGGLY_ENV is set to
+// "production" -- the switch that turns insecure-default fallbacks (JWT
+// secret, admin password) into hard startup failures instead of warnings.
+// Left unset, behavior is unchanged from before this flag existed.
+func isProductionEnvironment() bool {
+	return strings.EqualFold(strings.TrimSpace(os.Getenv("TOGGLY_ENV")), "production")
 }

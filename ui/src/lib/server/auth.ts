@@ -2,35 +2,42 @@ import { env } from '$env/dynamic/private';
 import { dev } from '$app/environment';
 import type { Cookies } from '@sveltejs/kit';
 
-export type UserRole = 'admin' | 'user';
-
 export interface Session {
+	id: string;
 	username: string;
-	role: UserRole;
+	isAdmin: boolean;
+	permissions: string[];
 }
 
 const AUTH_COOKIE = 'toggly.auth';
 const API_ORIGIN = env.TOGGLY_API_ORIGIN?.trim() || 'http://127.0.0.1:8080';
 
-function parseUser(payload: unknown): Session | null {
+function parseSession(payload: unknown): Session | null {
 	if (typeof payload !== 'object' || payload === null) {
 		return null;
 	}
-	const user = (payload as { user?: unknown }).user;
+	const { user, isAdmin, permissions } = payload as {
+		user?: unknown;
+		isAdmin?: unknown;
+		permissions?: unknown;
+	};
 	if (typeof user !== 'object' || user === null) {
 		return null;
 	}
-	const { username, role } = user as { username?: unknown; role?: unknown };
-	if (typeof username !== 'string' || (role !== 'admin' && role !== 'user')) {
+	const { id, username } = user as { id?: unknown; username?: unknown };
+	if (
+		typeof id !== 'string' ||
+		typeof username !== 'string' ||
+		typeof isAdmin !== 'boolean' ||
+		!Array.isArray(permissions) ||
+		!permissions.every((p) => typeof p === 'string')
+	) {
 		return null;
 	}
-	return { username, role };
+	return { id, username, isAdmin, permissions };
 }
 
-export async function login(
-	username: string,
-	password: string
-): Promise<{ token: string; user: Session } | null> {
+export async function login(username: string, password: string): Promise<{ token: string } | null> {
 	const response = await fetch(`${API_ORIGIN}/api/auth/login`, {
 		method: 'POST',
 		headers: { 'content-type': 'application/json' },
@@ -42,14 +49,13 @@ export async function login(
 		return null;
 	}
 
-	const user = parseUser(payload);
-	if (!user) {
-		return null;
-	}
-
-	return { token: payload.token, user };
+	return { token: payload.token };
 }
 
+// getSession always re-fetches /api/auth/me rather than trusting any local
+// cache -- the backend resolves permissions fresh from the store on every
+// call, so a group/permission change or deactivation is reflected on the
+// user's very next request, with no token revocation infrastructure needed.
 export async function getSession(cookies: Cookies): Promise<Session | null> {
 	const token = cookies.get(AUTH_COOKIE);
 	if (!token) {
@@ -63,7 +69,7 @@ export async function getSession(cookies: Cookies): Promise<Session | null> {
 		return null;
 	}
 
-	return parseUser(await response.json().catch(() => null));
+	return parseSession(await response.json().catch(() => null));
 }
 
 export function setAuthCookie(cookies: Cookies, token: string) {

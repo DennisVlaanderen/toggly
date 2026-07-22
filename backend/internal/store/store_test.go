@@ -2,7 +2,9 @@ package store
 
 import (
 	"bytes"
+	"errors"
 	"io"
+	"slices"
 	"testing"
 	"time"
 
@@ -64,7 +66,7 @@ func waitForLeader(t *testing.T, s *Store) {
 func TestStoreSetAndGet(t *testing.T) {
 	s := newTestStore(t)
 
-	applied, err := s.Set(Flag{Key: "new-checkout", Enabled: true, Value: "on"})
+	applied, err := s.Flags().Set(Flag{Key: "new-checkout", Enabled: true, Value: "on"})
 	if err != nil {
 		t.Fatalf("expected set to succeed: %v", err)
 	}
@@ -72,7 +74,7 @@ func TestStoreSetAndGet(t *testing.T) {
 		t.Fatal("expected applied flag to have a non-zero version")
 	}
 
-	got, ok := s.Get("new-checkout")
+	got, ok := s.Flags().Get("new-checkout")
 	if !ok {
 		t.Fatal("expected flag to be present after set")
 	}
@@ -80,7 +82,7 @@ func TestStoreSetAndGet(t *testing.T) {
 		t.Fatalf("unexpected flag state: %+v", got)
 	}
 
-	flags := s.List()
+	flags := s.Flags().List()
 	if len(flags) != 1 {
 		t.Fatalf("expected 1 flag, got %d", len(flags))
 	}
@@ -89,19 +91,248 @@ func TestStoreSetAndGet(t *testing.T) {
 func TestStoreSetOverwritesExistingFlag(t *testing.T) {
 	s := newTestStore(t)
 
-	if _, err := s.Set(Flag{Key: "checkout", Enabled: true}); err != nil {
+	if _, err := s.Flags().Set(Flag{Key: "checkout", Enabled: true}); err != nil {
 		t.Fatalf("expected first set to succeed: %v", err)
 	}
-	if _, err := s.Set(Flag{Key: "checkout", Enabled: false}); err != nil {
+	if _, err := s.Flags().Set(Flag{Key: "checkout", Enabled: false}); err != nil {
 		t.Fatalf("expected second set to succeed: %v", err)
 	}
 
-	got, ok := s.Get("checkout")
+	got, ok := s.Flags().Get("checkout")
 	if !ok {
 		t.Fatal("expected flag to still be present")
 	}
 	if got.Enabled {
 		t.Fatal("expected the later Set to win")
+	}
+}
+
+func TestStoreSetAndGetUser(t *testing.T) {
+	s := newTestStore(t)
+
+	applied, err := s.Users().Set(User{ID: "u1", Username: "alice", Active: true, GroupIDs: []string{"editors"}})
+	if err != nil {
+		t.Fatalf("expected SetUser to succeed: %v", err)
+	}
+	if applied.Version == 0 {
+		t.Fatal("expected applied user to have a non-zero version")
+	}
+
+	got, ok := s.Users().Get("u1")
+	if !ok {
+		t.Fatal("expected user to be present after SetUser")
+	}
+	if got.Username != "alice" || !got.Active {
+		t.Fatalf("unexpected user state: %+v", got)
+	}
+
+	byUsername, ok := s.Users().GetByUsername("alice")
+	if !ok || byUsername.ID != "u1" {
+		t.Fatalf("expected GetUserByUsername to find u1, got %+v (ok=%v)", byUsername, ok)
+	}
+
+	if len(s.Users().List()) != 1 {
+		t.Fatalf("expected 1 user, got %d", len(s.Users().List()))
+	}
+}
+
+func TestStoreDeleteUser(t *testing.T) {
+	s := newTestStore(t)
+
+	if _, err := s.Users().Set(User{ID: "u1", Username: "alice", Active: true}); err != nil {
+		t.Fatalf("expected SetUser to succeed: %v", err)
+	}
+	if err := s.Users().Delete("u1"); err != nil {
+		t.Fatalf("expected DeleteUser to succeed: %v", err)
+	}
+	if _, ok := s.Users().Get("u1"); ok {
+		t.Fatal("expected user to be gone after DeleteUser")
+	}
+}
+
+func TestStoreSetUserRejectsDuplicateUsername(t *testing.T) {
+	s := newTestStore(t)
+
+	if _, err := s.Users().Set(User{ID: "u1", Username: "alice", Active: true}); err != nil {
+		t.Fatalf("expected first SetUser to succeed: %v", err)
+	}
+
+	if _, err := s.Users().Set(User{ID: "u2", Username: "alice", Active: true}); !errors.Is(err, ErrUsernameTaken) {
+		t.Fatalf("expected ErrUsernameTaken for a duplicate username, got %v", err)
+	}
+
+	if len(s.Users().List()) != 1 {
+		t.Fatalf("expected only 1 user to exist, got %d", len(s.Users().List()))
+	}
+}
+
+func TestStoreDeleteUserRejectsSoleActiveAdmin(t *testing.T) {
+	s := newTestStore(t)
+
+	if _, err := s.Groups().Set(Group{ID: AdminGroupID, Name: "Admin", System: true}); err != nil {
+		t.Fatalf("seed admin group: %v", err)
+	}
+	if _, err := s.Users().Set(User{ID: "u1", Username: "sole-admin", Active: true, GroupIDs: []string{AdminGroupID}}); err != nil {
+		t.Fatalf("expected SetUser to succeed: %v", err)
+	}
+
+	if err := s.Users().Delete("u1"); !errors.Is(err, ErrLastAdmin) {
+		t.Fatalf("expected ErrLastAdmin deleting the sole active admin, got %v", err)
+	}
+	if _, ok := s.Users().Get("u1"); !ok {
+		t.Fatal("expected sole admin to still exist after rejected delete")
+	}
+}
+
+func TestStoreDeleteUserAllowsAdminWhenAnotherAdminRemains(t *testing.T) {
+	s := newTestStore(t)
+
+	if _, err := s.Groups().Set(Group{ID: AdminGroupID, Name: "Admin", System: true}); err != nil {
+		t.Fatalf("seed admin group: %v", err)
+	}
+	if _, err := s.Users().Set(User{ID: "u1", Username: "admin-one", Active: true, GroupIDs: []string{AdminGroupID}}); err != nil {
+		t.Fatalf("expected SetUser to succeed: %v", err)
+	}
+	if _, err := s.Users().Set(User{ID: "u2", Username: "admin-two", Active: true, GroupIDs: []string{AdminGroupID}}); err != nil {
+		t.Fatalf("expected SetUser to succeed: %v", err)
+	}
+
+	if err := s.Users().Delete("u1"); err != nil {
+		t.Fatalf("expected deleting one of two admins to succeed: %v", err)
+	}
+	if _, ok := s.Users().Get("u1"); ok {
+		t.Fatal("expected u1 to be gone after delete")
+	}
+}
+
+func TestStoreSetUserRejectsDeactivatingSoleActiveAdmin(t *testing.T) {
+	s := newTestStore(t)
+
+	if _, err := s.Groups().Set(Group{ID: AdminGroupID, Name: "Admin", System: true}); err != nil {
+		t.Fatalf("seed admin group: %v", err)
+	}
+	if _, err := s.Users().Set(User{ID: "u1", Username: "sole-admin", Active: true, GroupIDs: []string{AdminGroupID}}); err != nil {
+		t.Fatalf("expected SetUser to succeed: %v", err)
+	}
+
+	if _, err := s.Users().Set(User{ID: "u1", Username: "sole-admin", Active: false, GroupIDs: []string{AdminGroupID}}); !errors.Is(err, ErrLastAdmin) {
+		t.Fatalf("expected ErrLastAdmin deactivating the sole active admin, got %v", err)
+	}
+
+	got, ok := s.Users().Get("u1")
+	if !ok || !got.Active {
+		t.Fatalf("expected sole admin to remain active after rejected update, got %+v (ok=%v)", got, ok)
+	}
+}
+
+func TestStoreSetUserRejectsRemovingSoleActiveAdminFromAdminGroup(t *testing.T) {
+	s := newTestStore(t)
+
+	if _, err := s.Groups().Set(Group{ID: AdminGroupID, Name: "Admin", System: true}); err != nil {
+		t.Fatalf("seed admin group: %v", err)
+	}
+	if _, err := s.Users().Set(User{ID: "u1", Username: "sole-admin", Active: true, GroupIDs: []string{AdminGroupID}}); err != nil {
+		t.Fatalf("expected SetUser to succeed: %v", err)
+	}
+
+	if _, err := s.Users().Set(User{ID: "u1", Username: "sole-admin", Active: true, GroupIDs: []string{}}); !errors.Is(err, ErrLastAdmin) {
+		t.Fatalf("expected ErrLastAdmin stripping the sole active admin's Admin group membership, got %v", err)
+	}
+
+	got, ok := s.Users().Get("u1")
+	if !ok || !slices.Contains(got.GroupIDs, AdminGroupID) {
+		t.Fatalf("expected sole admin to keep Admin group membership after rejected update, got %+v (ok=%v)", got, ok)
+	}
+}
+
+func TestStoreSetUserAllowsUnrelatedEditsToSoleActiveAdmin(t *testing.T) {
+	s := newTestStore(t)
+
+	if _, err := s.Groups().Set(Group{ID: AdminGroupID, Name: "Admin", System: true}); err != nil {
+		t.Fatalf("seed admin group: %v", err)
+	}
+	if _, err := s.Users().Set(User{ID: "u1", Username: "sole-admin", Active: true, GroupIDs: []string{AdminGroupID}}); err != nil {
+		t.Fatalf("expected SetUser to succeed: %v", err)
+	}
+
+	if _, err := s.Users().Set(User{ID: "u1", Username: "renamed-admin", Active: true, GroupIDs: []string{AdminGroupID}}); err != nil {
+		t.Fatalf("expected renaming the sole active admin (while remaining an active admin) to succeed: %v", err)
+	}
+
+	got, ok := s.Users().Get("u1")
+	if !ok || got.Username != "renamed-admin" {
+		t.Fatalf("expected sole admin's username to be updated, got %+v (ok=%v)", got, ok)
+	}
+}
+
+func TestStoreSetAndGetGroup(t *testing.T) {
+	s := newTestStore(t)
+
+	applied, err := s.Groups().Set(Group{ID: "editors", Name: "Editors", Permissions: []string{"flags:read", "flags:write"}})
+	if err != nil {
+		t.Fatalf("expected SetGroup to succeed: %v", err)
+	}
+	if applied.Version == 0 {
+		t.Fatal("expected applied group to have a non-zero version")
+	}
+
+	got, ok := s.Groups().Get("editors")
+	if !ok {
+		t.Fatal("expected group to be present after SetGroup")
+	}
+	if got.Name != "Editors" || len(got.Permissions) != 2 {
+		t.Fatalf("unexpected group state: %+v", got)
+	}
+
+	if len(s.Groups().List()) != 1 {
+		t.Fatalf("expected 1 group, got %d", len(s.Groups().List()))
+	}
+}
+
+func TestStoreSetGroupRejectsSystemGroupEdit(t *testing.T) {
+	s := newTestStore(t)
+
+	if _, err := s.Groups().Set(Group{ID: AdminGroupID, Name: "Admin", System: true}); err != nil {
+		t.Fatalf("expected initial seed of the Admin group to succeed: %v", err)
+	}
+
+	if _, err := s.Groups().Set(Group{ID: AdminGroupID, Name: "Renamed"}); err == nil {
+		t.Fatal("expected editing the Admin group to be rejected")
+	}
+
+	got, ok := s.Groups().Get(AdminGroupID)
+	if !ok || got.Name != "Admin" {
+		t.Fatalf("expected Admin group to be unchanged, got %+v (ok=%v)", got, ok)
+	}
+}
+
+func TestStoreDeleteGroupRejectsSystemGroup(t *testing.T) {
+	s := newTestStore(t)
+
+	if _, err := s.Groups().Set(Group{ID: AdminGroupID, Name: "Admin", System: true}); err != nil {
+		t.Fatalf("expected initial seed of the Admin group to succeed: %v", err)
+	}
+
+	if err := s.Groups().Delete(AdminGroupID); err == nil {
+		t.Fatal("expected deleting the Admin group to be rejected")
+	}
+
+	if _, ok := s.Groups().Get(AdminGroupID); !ok {
+		t.Fatal("expected Admin group to still exist")
+	}
+}
+
+func TestStoreDeleteGroupAllowsNonSystemGroup(t *testing.T) {
+	s := newTestStore(t)
+
+	if _, err := s.Groups().Set(Group{ID: "editors", Name: "Editors"}); err != nil {
+		t.Fatalf("expected SetGroup to succeed: %v", err)
+	}
+	if err := s.Groups().Delete("editors"); err != nil {
+		t.Fatalf("expected DeleteGroup to succeed for a non-system group: %v", err)
+	}
+	if _, ok := s.Groups().Get("editors"); ok {
+		t.Fatal("expected group to be gone after DeleteGroup")
 	}
 }
 
@@ -112,7 +343,7 @@ type memSnapshotSink struct {
 func (s *memSnapshotSink) Write(p []byte) (int, error) { return s.buf.Write(p) }
 func (s *memSnapshotSink) Close() error                { return nil }
 func (s *memSnapshotSink) ID() string                  { return "test-snapshot" }
-func (s *memSnapshotSink) Cancel() error                { return nil }
+func (s *memSnapshotSink) Cancel() error               { return nil }
 
 func (s *memSnapshotSink) reader() io.ReadCloser {
 	return io.NopCloser(bytes.NewReader(s.buf.Bytes()))

@@ -16,7 +16,12 @@
 </script>
 
 <div class="flex h-screen overflow-hidden bg-gradient-to-br from-brand-50 to-accent-50">
-	<Sidebar flags={data.flags} username={data.username} />
+	<Sidebar
+		flags={data.flags}
+		username={data.username}
+		isAdmin={data.isAdmin}
+		permissions={data.permissions}
+	/>
 	<main class="min-w-0 flex-1 overflow-y-auto">
 		{@render children()}
 	</main>

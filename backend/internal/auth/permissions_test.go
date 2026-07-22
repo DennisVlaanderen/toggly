@@ -1,0 +1,99 @@
+package auth
+
+import (
+	"testing"
+
+	"toggly/backend/internal/store"
+)
+
+func TestResolveAdminGroupBypasses(t *testing.T) {
+	s := store.NewTestStore(t)
+	if _, err := s.Groups().Set(store.Group{ID: store.AdminGroupID, Name: "Admin", System: true}); err != nil {
+		t.Fatalf("seed admin group: %v", err)
+	}
+	user, err := s.Users().Set(store.User{ID: store.NewID(), Username: "root", Active: true, GroupIDs: []string{store.AdminGroupID}})
+	if err != nil {
+		t.Fatalf("create user: %v", err)
+	}
+
+	service := NewService("test-secret", s)
+	perms, isAdmin, err := service.Resolve(user.ID)
+	if err != nil {
+		t.Fatalf("expected resolve to succeed: %v", err)
+	}
+	if !isAdmin {
+		t.Fatal("expected user in Admin group to resolve as admin")
+	}
+	if len(perms) != 0 {
+		t.Fatalf("expected empty perms set for admin bypass, got %v", perms)
+	}
+}
+
+func TestResolveUnionsPermissionsAcrossGroups(t *testing.T) {
+	s := store.NewTestStore(t)
+	if _, err := s.Groups().Set(store.Group{ID: "editors", Name: "Editors", Permissions: []string{PermFlagsRead, PermFlagsWrite}}); err != nil {
+		t.Fatalf("create editors group: %v", err)
+	}
+	if _, err := s.Groups().Set(store.Group{ID: "user-admins", Name: "User Admins", Permissions: []string{PermUsersRead, PermUsersWrite}}); err != nil {
+		t.Fatalf("create user-admins group: %v", err)
+	}
+	user, err := s.Users().Set(store.User{ID: store.NewID(), Username: "alice", Active: true, GroupIDs: []string{"editors", "user-admins"}})
+	if err != nil {
+		t.Fatalf("create user: %v", err)
+	}
+
+	service := NewService("test-secret", s)
+	perms, isAdmin, err := service.Resolve(user.ID)
+	if err != nil {
+		t.Fatalf("expected resolve to succeed: %v", err)
+	}
+	if isAdmin {
+		t.Fatal("expected non-admin user to not resolve as admin")
+	}
+	for _, want := range []string{PermFlagsRead, PermFlagsWrite, PermUsersRead, PermUsersWrite} {
+		if !perms.Has(want) {
+			t.Fatalf("expected resolved permission set to include %q, got %v", want, perms.Keys())
+		}
+	}
+}
+
+func TestResolveUserWithNoGroupsHasNoPermissions(t *testing.T) {
+	s := store.NewTestStore(t)
+	user, err := s.Users().Set(store.User{ID: store.NewID(), Username: "nobody", Active: true})
+	if err != nil {
+		t.Fatalf("create user: %v", err)
+	}
+
+	service := NewService("test-secret", s)
+	perms, isAdmin, err := service.Resolve(user.ID)
+	if err != nil {
+		t.Fatalf("expected resolve to succeed: %v", err)
+	}
+	if isAdmin {
+		t.Fatal("expected user with no groups to not be admin")
+	}
+	if len(perms) != 0 {
+		t.Fatalf("expected no permissions, got %v", perms.Keys())
+	}
+}
+
+func TestResolveFailsForDeactivatedUser(t *testing.T) {
+	s := store.NewTestStore(t)
+	user, err := s.Users().Set(store.User{ID: store.NewID(), Username: "gone", Active: false})
+	if err != nil {
+		t.Fatalf("create user: %v", err)
+	}
+
+	service := NewService("test-secret", s)
+	if _, _, err := service.Resolve(user.ID); err == nil {
+		t.Fatal("expected resolve to fail for a deactivated user")
+	}
+}
+
+func TestResolveFailsForUnknownUser(t *testing.T) {
+	s := store.NewTestStore(t)
+	service := NewService("test-secret", s)
+	if _, _, err := service.Resolve("does-not-exist"); err == nil {
+		t.Fatal("expected resolve to fail for an unknown user id")
+	}
+}
