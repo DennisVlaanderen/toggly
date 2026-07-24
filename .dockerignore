@@ -4,3 +4,8 @@ docs
 *.md
 .svelte-kit
 node_modules
+
+/data
+/bin
+/obj
+/**/raft.db

@@ -59,29 +59,28 @@
 	bind:this={dialogEl}
 	onclose={handleClose}
 	onclick={handleBackdropClick}
-	class="m-auto rounded-3xl border border-brand-100 bg-white p-0 shadow-xl backdrop:bg-brand-900/50"
+	class="m-auto rounded-xl border border-line-1 bg-surface p-0 backdrop:bg-navy/50"
 >
 	<div class="grid gap-4 p-6 sm:w-96">
 		<div class="grid gap-1.5">
-			<h2 class="text-lg font-bold text-brand-900">{title}</h2>
+			<h2 class="text-lg font-semibold text-ink">{title}</h2>
 			{#if description}
-				<p class="text-sm text-accent-900/70">{description}</p>
+				<p class="text-sm text-ink-muted">{description}</p>
 			{/if}
 		</div>
 		<div class="flex justify-end gap-3">
 			<button
 				type="button"
-				class="cursor-pointer rounded-full px-4 py-2 text-sm font-semibold text-brand-800 hover:bg-accent-50"
+				class="cursor-pointer rounded-lg px-4 py-2 text-sm font-medium text-ink hover:bg-line-3"
 				onclick={requestCancel}
 			>
 				{cancelLabel}
 			</button>
 			<button
 				type="button"
-				class="cursor-pointer rounded-full px-4 py-2 text-sm font-bold text-white {variant ===
-				'danger'
-					? 'bg-error-600 hover:bg-error-700'
-					: 'bg-brand-600 hover:bg-brand-700'}"
+				class="cursor-pointer rounded-lg px-4 py-2 text-sm font-semibold {variant === 'danger'
+					? 'bg-error text-cream hover:opacity-90'
+					: 'bg-gold text-navy hover:opacity-90'}"
 				onclick={requestConfirm}
 			>
 				{confirmLabel}

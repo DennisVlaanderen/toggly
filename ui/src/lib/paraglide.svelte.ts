@@ -12,7 +12,9 @@ import {
 } from '$lib/paraglide/runtime';
 
 export class Locale {
-	#current: _Locale = $state(toLocale(browser && document.querySelector('html')?.lang) ?? baseLocale);
+	#current: _Locale = $state(
+		toLocale(browser && document.querySelector('html')?.lang) ?? baseLocale
+	);
 
 	constructor() {
 		overwriteGetLocale(() => this.#current);

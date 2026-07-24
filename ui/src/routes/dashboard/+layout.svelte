@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import Sidebar from '$lib/components/Sidebar.svelte';
+	import Header from '$lib/components/Header.svelte';
 	import Toast from '$lib/components/Toast.svelte';
 	import { toast } from '$lib/toast.svelte';
 	import { m } from '$lib/paraglide/messages.js';
@@ -15,16 +16,19 @@
 	});
 </script>
 
-<div class="flex h-screen overflow-hidden bg-gradient-to-br from-brand-50 to-accent-50">
+<div class="flex h-screen overflow-hidden bg-page">
 	<Sidebar
 		flags={data.flags}
 		username={data.username}
 		isAdmin={data.isAdmin}
 		permissions={data.permissions}
 	/>
-	<main class="min-w-0 flex-1 overflow-y-auto">
-		{@render children()}
-	</main>
+	<div class="flex min-w-0 flex-1 flex-col">
+		<Header username={data.username} />
+		<main class="min-w-0 flex-1 overflow-y-auto">
+			{@render children()}
+		</main>
+	</div>
 </div>
 
 <Toast />

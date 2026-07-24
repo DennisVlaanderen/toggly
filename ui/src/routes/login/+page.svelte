@@ -44,24 +44,22 @@
 	<LocaleSwitcher />
 </div>
 
-<div
-	class="grid min-h-screen place-items-center bg-gradient-to-br from-brand-50 to-accent-50 p-8 font-sans"
->
-	<div class="w-full max-w-md rounded-3xl border border-brand-100 bg-white p-8 shadow-xl">
+<div class="grid min-h-screen place-items-center bg-page p-8 font-sans">
+	<div class="w-full max-w-md rounded-xl border border-line-1 bg-surface p-8">
 		<div class="mb-6">
-			<p class="mb-1 text-xs font-bold tracking-widest text-brand-600 uppercase">
+			<p class="mb-1 text-xs font-semibold tracking-widest text-nav-active uppercase">
 				{m.login_eyebrow()}
 			</p>
-			<h1 class="text-3xl font-bold text-brand-900">{m.login_title()}</h1>
-			<p class="mt-1 text-accent-900/70">{m.login_subtitle()}</p>
+			<h1 class="text-2xl font-semibold text-ink">{m.login_title()}</h1>
+			<p class="mt-1 text-ink-muted">{m.login_subtitle()}</p>
 		</div>
 
 		<form method="POST" class="grid gap-4" onsubmit={handleSubmit}>
-			<label class="grid gap-1.5 font-semibold text-brand-800">
+			<label class="grid gap-1.5 text-sm font-medium text-ink">
 				<span>{m.login_username_label()}</span>
 				<div class="relative">
 					<span
-						class="icon-[lucide--user] absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-brand-400"
+						class="icon-[lucide--user] absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-ink-muted"
 						aria-hidden="true"
 					></span>
 					<input
@@ -69,16 +67,16 @@
 						type="text"
 						autocomplete="username"
 						required
-						class="w-full rounded-2xl border border-brand-200 bg-accent-50/40 py-3 pr-4 pl-10 text-base focus:border-brand-500 focus:ring-2 focus:ring-brand-500 focus:outline-none"
+						class="w-full rounded-lg border border-line-1 bg-page py-3 pr-4 pl-10 text-base text-ink focus:border-gold focus:ring-2 focus:ring-gold/40 focus:outline-none"
 					/>
 				</div>
 			</label>
 
-			<label class="grid gap-1.5 font-semibold text-brand-800">
+			<label class="grid gap-1.5 text-sm font-medium text-ink">
 				<span>{m.login_password_label()}</span>
 				<div class="relative">
 					<span
-						class="icon-[lucide--lock] absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-brand-400"
+						class="icon-[lucide--lock] absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-ink-muted"
 						aria-hidden="true"
 					></span>
 					<input
@@ -86,13 +84,13 @@
 						type="password"
 						autocomplete="current-password"
 						required
-						class="w-full rounded-2xl border border-brand-200 bg-accent-50/40 py-3 pr-4 pl-10 text-base focus:border-brand-500 focus:ring-2 focus:ring-brand-500 focus:outline-none"
+						class="w-full rounded-lg border border-line-1 bg-page py-3 pr-4 pl-10 text-base text-ink focus:border-gold focus:ring-2 focus:ring-gold/40 focus:outline-none"
 					/>
 				</div>
 			</label>
 
 			{#if errorMessage}
-				<p class="flex items-center gap-2 text-sm text-error-600">
+				<p class="flex items-center gap-2 text-sm text-error">
 					<span class="icon-[lucide--circle-alert] size-4 shrink-0" aria-hidden="true"></span>
 					{errorMessage}
 				</p>
@@ -101,13 +99,13 @@
 			<button
 				type="submit"
 				disabled={isSubmitting}
-				class="cursor-pointer rounded-full bg-gradient-to-br from-brand-500 to-accent-500 px-4 py-3.5 font-bold text-white disabled:cursor-wait disabled:opacity-70"
+				class="cursor-pointer rounded-lg bg-gold px-4 py-3.5 font-semibold text-navy hover:opacity-90 disabled:cursor-wait disabled:opacity-70"
 			>
 				{isSubmitting ? m.login_submitting() : m.login_submit()}
 			</button>
 		</form>
 
-		<div class="mt-5 border-t border-brand-100 pt-4 text-sm text-accent-900/70">
+		<div class="mt-5 border-t border-line-2 pt-4 text-sm text-ink-muted">
 			<p>{m.login_demo_hint()}</p>
 			<p>{m.login_demo_admin()}</p>
 		</div>

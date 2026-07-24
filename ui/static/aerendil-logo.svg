@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <clipPath id="ringGapTop"><rect x="70" y="0" width="60" height="200"></rect></clipPath>
+  </defs>
+
+  
+  <circle cx="100" cy="100" r="72" fill="none" stroke="#385D7A" stroke-width="3" stroke-dasharray="16 7"></circle>
+
+  
+  <circle cx="100" cy="100" r="0" fill="none"></circle>
+  <circle cx="141.35" cy="130.6" r="2.2" fill="#D4AF37"></circle>
+  <circle cx="58.65" cy="130.6" r="2.2" fill="#D4AF37"></circle>
+  <circle cx="58.65" cy="69.4" r="2.2" fill="#D4AF37"></circle>
+  <circle cx="141.35" cy="69.4" r="2.2" fill="#D4AF37"></circle>
+
+  
+  <polygon points="100,100 109,100 100,12" fill="#F2CE68"></polygon>
+  <polygon points="100,100 100,12 91,100" fill="#B8892A"></polygon>
+
+  <polygon points="100,100 91,100 100,188" fill="#F2CE68"></polygon>
+  <polygon points="100,100 100,188 109,100" fill="#B8892A"></polygon>
+
+  <polygon points="100,100 100,109 188,100" fill="#F2CE68"></polygon>
+  <polygon points="100,100 188,100 100,91" fill="#B8892A"></polygon>
+
+  <polygon points="100,100 100,91 12,100" fill="#F2CE68"></polygon>
+  <polygon points="100,100 12,100 100,109" fill="#B8892A"></polygon>
+
+  
+  <polygon points="100,100 104.95,104.95 132.53,67.47" fill="#D4AF37"></polygon>
+  <polygon points="100,100 132.53,67.47 95.05,95.05" fill="#B8892A"></polygon>
+
+  <polygon points="100,100 95.05,104.95 132.53,132.53" fill="#D4AF37"></polygon>
+  <polygon points="100,100 132.53,132.53 104.95,95.05" fill="#B8892A"></polygon>
+
+  <polygon points="100,100 95.05,95.05 67.47,132.53" fill="#D4AF37"></polygon>
+  <polygon points="100,100 67.47,132.53 104.95,104.95" fill="#B8892A"></polygon>
+
+  <polygon points="100,100 104.95,95.05 67.47,67.47" fill="#D4AF37"></polygon>
+  <polygon points="100,100 67.47,67.47 95.05,104.95" fill="#B8892A"></polygon>
+
+  
+  <polygon points="100,94.5 105.5,100 100,105.5 94.5,100" fill="#0B1220"></polygon>
+
+  
+  <polygon points="100,-2 103,9 114,12 103,15 100,26 97,15 86,12 97,9" fill="#D4AF37" transform="translate(0,0)"></polygon>
+</svg>

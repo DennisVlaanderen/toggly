@@ -113,132 +113,129 @@
 	<title>{m.users_page_title()} • Aerendil</title>
 </svelte:head>
 
-<div class="grid gap-6 p-8">
+<div class="grid gap-6 p-7">
 	<div>
-		<h1 class="text-2xl font-bold text-brand-900">{m.users_page_title()}</h1>
-		<p class="mt-1 text-accent-900/70">{m.users_page_subtitle()}</p>
+		<h1 class="text-xl font-semibold text-ink">{m.users_page_title()}</h1>
+		<p class="mt-1 text-ink-muted">{m.users_page_subtitle()}</p>
 	</div>
 
-	<div class="rounded-3xl border border-brand-100 bg-white p-6 shadow-xl">
+	<div class="rounded-xl border border-line-1 bg-surface">
 		{#if data.users.length === 0}
-			<p class="text-sm text-accent-900/60">{m.users_empty()}</p>
+			<p class="p-6 text-sm text-ink-muted">{m.users_empty()}</p>
 		{:else}
-			<div class="grid gap-4">
-				{#each data.users as user (user.id)}
-					<div class="rounded-2xl border border-brand-100 bg-accent-50/40 p-4">
-						<div class="flex items-center justify-between gap-3">
-							<div class="flex items-center gap-2">
-								<strong class="text-brand-900">{user.username}</strong>
-								<span
-									class="rounded-full px-2 py-0.5 text-xs font-bold tracking-wide uppercase {user.active
-										? 'bg-brand-100 text-brand-700'
-										: 'bg-accent-100 text-accent-900/60'}"
-								>
-									{user.active ? m.users_status_active() : m.users_status_inactive()}
-								</span>
-							</div>
-							<button
-								type="button"
-								class="cursor-pointer text-sm font-semibold text-error-600 hover:underline"
-								onclick={() => requestDelete(user)}
+			{#each data.users as user, i (user.id)}
+				<div class="p-5 {i > 0 ? 'border-t border-line-4' : ''}">
+					<div class="flex items-center justify-between gap-3">
+						<div class="flex items-center gap-2">
+							<strong class="text-ink">{user.username}</strong>
+							<span
+								class="rounded-full px-2 py-0.5 text-xs font-semibold tracking-wide uppercase {user.active
+									? 'bg-success-bg text-success'
+									: 'bg-control text-ink-muted'}"
 							>
-								{m.users_delete_button()}
-							</button>
+								{user.active ? m.users_status_active() : m.users_status_inactive()}
+							</span>
+						</div>
+						<button
+							type="button"
+							class="cursor-pointer text-sm font-medium text-error hover:underline"
+							onclick={() => requestDelete(user)}
+						>
+							{m.users_delete_button()}
+						</button>
+					</div>
+
+					<form onsubmit={(event) => handleUpdate(event, user)} class="mt-3 grid gap-3">
+						<div class="grid gap-3 sm:grid-cols-2">
+							<label class="grid gap-1.5 text-sm text-ink">
+								<span class="font-medium">{m.users_table_username()}</span>
+								<input
+									name="username"
+									value={user.username}
+									class="w-full rounded-lg border border-line-1 bg-page px-4 py-2 text-sm text-ink focus:border-gold focus:ring-2 focus:ring-gold/40 focus:outline-none"
+								/>
+							</label>
+							<label class="grid gap-1.5 text-sm text-ink">
+								<span class="font-medium">{m.users_edit_password_label()}</span>
+								<input
+									name="password"
+									type="password"
+									placeholder={m.users_edit_password_placeholder()}
+									class="w-full rounded-lg border border-line-1 bg-page px-4 py-2 text-sm text-ink focus:border-gold focus:ring-2 focus:ring-gold/40 focus:outline-none"
+								/>
+							</label>
 						</div>
 
-						<form onsubmit={(event) => handleUpdate(event, user)} class="mt-3 grid gap-3">
-							<div class="grid gap-3 sm:grid-cols-2">
-								<label class="grid gap-1.5 text-sm text-brand-800">
-									<span class="font-semibold">{m.users_table_username()}</span>
-									<input
-										name="username"
-										value={user.username}
-										class="w-full rounded-2xl border border-brand-200 bg-white px-4 py-2 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-500 focus:outline-none"
-									/>
-								</label>
-								<label class="grid gap-1.5 text-sm text-brand-800">
-									<span class="font-semibold">{m.users_edit_password_label()}</span>
-									<input
-										name="password"
-										type="password"
-										placeholder={m.users_edit_password_placeholder()}
-										class="w-full rounded-2xl border border-brand-200 bg-white px-4 py-2 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-500 focus:outline-none"
-									/>
-								</label>
+						{#if data.groups.length > 0}
+							<div class="flex flex-wrap gap-3">
+								{#each data.groups as group (group.id)}
+									<label class="flex items-center gap-1.5 text-sm text-ink">
+										<input
+											type="checkbox"
+											name="groupIds"
+											value={group.id}
+											checked={user.groupIds.includes(group.id)}
+										/>
+										{group.name}
+									</label>
+								{/each}
 							</div>
+						{/if}
 
-							{#if data.groups.length > 0}
-								<div class="flex flex-wrap gap-3">
-									{#each data.groups as group (group.id)}
-										<label class="flex items-center gap-1.5 text-sm text-brand-800">
-											<input
-												type="checkbox"
-												name="groupIds"
-												value={group.id}
-												checked={user.groupIds.includes(group.id)}
-											/>
-											{group.name}
-										</label>
-									{/each}
-								</div>
-							{/if}
+						<label class="flex items-center gap-1.5 text-sm text-ink">
+							<input type="checkbox" name="active" checked={user.active} />
+							{m.users_edit_active_label()}
+						</label>
 
-							<label class="flex items-center gap-1.5 text-sm text-brand-800">
-								<input type="checkbox" name="active" checked={user.active} />
-								{m.users_edit_active_label()}
-							</label>
+						{#if updateErrors[user.id]}
+							<p class="flex items-center gap-2 text-sm text-error">
+								<span class="icon-[lucide--circle-alert] size-4 shrink-0" aria-hidden="true"></span>
+								{updateErrors[user.id]}
+							</p>
+						{/if}
 
-							{#if updateErrors[user.id]}
-								<p class="flex items-center gap-2 text-sm text-error-600">
-									<span class="icon-[lucide--circle-alert] size-4 shrink-0" aria-hidden="true"
-									></span>
-									{updateErrors[user.id]}
-								</p>
-							{/if}
-
-							<button
-								type="submit"
-								disabled={updatingId === user.id}
-								class="cursor-pointer justify-self-start rounded-full bg-brand-600 px-4 py-2 text-sm font-bold text-white disabled:cursor-wait disabled:opacity-70"
-							>
-								{m.users_edit_submit()}
-							</button>
-						</form>
-					</div>
-				{/each}
-			</div>
+						<button
+							type="submit"
+							disabled={updatingId === user.id}
+							class="cursor-pointer justify-self-start rounded-lg border border-line-1 px-4 py-2 text-sm font-medium text-ink hover:bg-line-3 disabled:cursor-wait disabled:opacity-70"
+						>
+							{m.users_edit_submit()}
+						</button>
+					</form>
+				</div>
+			{/each}
 		{/if}
 	</div>
 
-	<div class="rounded-3xl border border-brand-100 bg-white p-6 shadow-xl">
-		<h2 class="mb-4 text-lg font-bold text-brand-900">{m.users_create_button()}</h2>
+	<div class="rounded-xl border border-line-1 bg-surface p-6">
+		<h2 class="mb-4 text-base font-semibold text-ink">{m.users_create_button()}</h2>
 		<form onsubmit={handleCreate} class="grid gap-4">
-			<label class="grid gap-1.5 font-semibold text-brand-800">
+			<label class="grid gap-1.5 text-sm font-medium text-ink">
 				<span>{m.users_create_username_label()}</span>
 				<input
 					name="username"
 					type="text"
 					required
-					class="w-full rounded-2xl border border-brand-200 bg-accent-50/40 px-4 py-2.5 text-base focus:border-brand-500 focus:ring-2 focus:ring-brand-500 focus:outline-none"
+					class="w-full rounded-lg border border-line-1 bg-page px-4 py-2.5 text-base text-ink focus:border-gold focus:ring-2 focus:ring-gold/40 focus:outline-none"
 				/>
 			</label>
 
-			<label class="grid gap-1.5 font-semibold text-brand-800">
+			<label class="grid gap-1.5 text-sm font-medium text-ink">
 				<span>{m.users_create_password_label()}</span>
 				<input
 					name="password"
 					type="password"
 					required
-					class="w-full rounded-2xl border border-brand-200 bg-accent-50/40 px-4 py-2.5 text-base focus:border-brand-500 focus:ring-2 focus:ring-brand-500 focus:outline-none"
+					class="w-full rounded-lg border border-line-1 bg-page px-4 py-2.5 text-base text-ink focus:border-gold focus:ring-2 focus:ring-gold/40 focus:outline-none"
 				/>
 			</label>
 
 			{#if data.groups.length > 0}
 				<fieldset class="grid gap-1.5">
-					<legend class="font-semibold text-brand-800">{m.users_create_groups_label()}</legend>
+					<legend class="text-sm font-medium text-ink">{m.users_create_groups_label()}</legend>
 					<div class="flex flex-wrap gap-3">
 						{#each data.groups as group (group.id)}
-							<label class="flex items-center gap-1.5 text-sm text-brand-800">
+							<label class="flex items-center gap-1.5 text-sm text-ink">
 								<input type="checkbox" name="groupIds" value={group.id} />
 								{group.name}
 							</label>
@@ -248,7 +245,7 @@
 			{/if}
 
 			{#if createError}
-				<p class="flex items-center gap-2 text-sm text-error-600">
+				<p class="flex items-center gap-2 text-sm text-error">
 					<span class="icon-[lucide--circle-alert] size-4 shrink-0" aria-hidden="true"></span>
 					{createError}
 				</p>
@@ -257,7 +254,7 @@
 			<button
 				type="submit"
 				disabled={isCreating}
-				class="cursor-pointer justify-self-start rounded-full bg-gradient-to-br from-brand-500 to-accent-500 px-5 py-2.5 font-bold text-white disabled:cursor-wait disabled:opacity-70"
+				class="cursor-pointer justify-self-start rounded-lg bg-gold px-5 py-2.5 font-semibold text-navy hover:opacity-90 disabled:cursor-wait disabled:opacity-70"
 			>
 				{m.users_create_submit()}
 			</button>
