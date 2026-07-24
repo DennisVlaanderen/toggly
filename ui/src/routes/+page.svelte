@@ -16,6 +16,6 @@
 		min-height: 100vh;
 		font-size: 1.1rem;
 		font-weight: 600;
-		color: oklch(0.35 0.06 300);
+		color: var(--color-ink);
 	}
 </style>

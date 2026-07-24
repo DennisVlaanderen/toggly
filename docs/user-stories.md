@@ -186,7 +186,7 @@ RBAC is flagged in this doc's own open-questions log as unspecified, and nothing
 
 ## Epic 8: Operations & Resilience (Operator)
 
-Toggly's premise is a Raft cluster built for high request rates, but today only generic "metrics" exist as a nice-to-have — nothing covers cluster visibility, abuse protection, incident response, or disaster recovery.
+Aerendil's premise is a Raft cluster built for high request rates, but today only generic "metrics" exist as a nice-to-have — nothing covers cluster visibility, abuse protection, incident response, or disaster recovery.
 
 | ID | Priority | Story |
 | --- | --- | --- |

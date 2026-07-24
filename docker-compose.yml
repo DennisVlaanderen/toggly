@@ -4,15 +4,15 @@ services:
       context: .
       dockerfile: backend/Dockerfile
     environment:
-      TOGGLY_RAFT_NODE_ID: node1
-      TOGGLY_RAFT_BIND_ADDR: ":9100"
-      TOGGLY_RAFT_DATA_DIR: /data
-      TOGGLY_RAFT_BOOTSTRAP: "true"
-      TOGGLY_JWT_SECRET: ${TOGGLY_JWT_SECRET:-toggly-dev-secret}
-      TOGGLY_ADMIN_USERNAME: ${TOGGLY_ADMIN_USERNAME:-admin}
-      TOGGLY_ADMIN_PASSWORD: ${TOGGLY_ADMIN_PASSWORD:-admin123}
+      AERENDIL_RAFT_NODE_ID: node1
+      AERENDIL_RAFT_BIND_ADDR: ":9100"
+      AERENDIL_RAFT_DATA_DIR: /data
+      AERENDIL_RAFT_BOOTSTRAP: "true"
+      AERENDIL_JWT_SECRET: ${AERENDIL_JWT_SECRET:-aerendil-dev-secret}
+      AERENDIL_ADMIN_USERNAME: ${AERENDIL_ADMIN_USERNAME:-admin}
+      AERENDIL_ADMIN_PASSWORD: ${AERENDIL_ADMIN_PASSWORD:-admin123}
     volumes:
-      - toggly-raft-data:/data
+      - aerendil-raft-data:/data
     expose:
       - "8080"
       - "9000"
@@ -22,7 +22,7 @@ services:
       context: ./ui
       dockerfile: Dockerfile
     environment:
-      TOGGLY_API_ORIGIN: http://backend:8080
+      AERENDIL_API_ORIGIN: http://backend:8080
     depends_on:
       - backend
     expose:
@@ -39,4 +39,4 @@ services:
       - ui
 
 volumes:
-  toggly-raft-data:
+  aerendil-raft-data:

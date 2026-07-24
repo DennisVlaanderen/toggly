@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"toggly/backend/internal/auth"
-	"toggly/backend/internal/store"
+	"aerendil/backend/internal/auth"
+	"aerendil/backend/internal/store"
 )
 
 func TestUsersGetRequiresPermission(t *testing.T) {

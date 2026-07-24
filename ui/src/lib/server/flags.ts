@@ -7,15 +7,15 @@ export interface FlagSummary {
 	version: number;
 }
 
-const API_ORIGIN = env.TOGGLY_API_ORIGIN?.trim() || 'http://127.0.0.1:8080';
+const API_ORIGIN = env.AERENDIL_API_ORIGIN?.trim() || 'http://127.0.0.1:8080';
 
 export async function listFlags(token: string): Promise<FlagSummary[]> {
 	const response = await fetch(`${API_ORIGIN}/api/flags`, {
 		headers: { Authorization: `Bearer ${token}` }
-	});
-	if (!response.ok) {
+	}).catch(() => null);
+	if (!response || !response.ok) {
 		// See the identical comment in lib/server/groups.ts's listGroups.
-		console.error(`listFlags: backend returned ${response.status}`);
+		console.error(`listFlags: backend returned ${response ? response.status : 'no response'}`);
 		return [];
 	}
 

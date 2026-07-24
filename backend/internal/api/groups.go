@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strings"
 
-	"toggly/backend/internal/auth"
-	"toggly/backend/internal/store"
+	"aerendil/backend/internal/auth"
+	"aerendil/backend/internal/store"
 )
 
 type groupResponse struct {

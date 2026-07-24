@@ -10,13 +10,13 @@
 		aria-live="polite"
 	>
 		<div
-			class="flex max-w-md items-center gap-3 rounded-2xl border border-info-200 bg-info-50 px-4 py-3 text-sm font-semibold text-info-800 shadow-xl"
+			class="flex max-w-md items-center gap-3 rounded-xl border border-line-1 bg-surface px-4 py-3 text-sm font-medium text-ink"
 		>
-			<span class="icon-[lucide--info] size-4 shrink-0" aria-hidden="true"></span>
+			<span class="icon-[lucide--info] size-4 shrink-0 text-ink-muted" aria-hidden="true"></span>
 			<p class="flex-1">{toast.message}</p>
 			<button
 				type="button"
-				class="icon-[lucide--x] size-4 shrink-0 cursor-pointer text-info-600 hover:text-info-800"
+				class="icon-[lucide--x] size-4 shrink-0 cursor-pointer text-ink-muted hover:text-ink"
 				aria-label={m.toast_dismiss()}
 				onclick={() => toast.dismiss()}
 			></button>

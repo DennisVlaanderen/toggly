@@ -9,8 +9,8 @@ export interface Session {
 	permissions: string[];
 }
 
-const AUTH_COOKIE = 'toggly.auth';
-const API_ORIGIN = env.TOGGLY_API_ORIGIN?.trim() || 'http://127.0.0.1:8080';
+const AUTH_COOKIE = 'aerendil.auth';
+const API_ORIGIN = env.AERENDIL_API_ORIGIN?.trim() || 'http://127.0.0.1:8080';
 
 function parseSession(payload: unknown): Session | null {
 	if (typeof payload !== 'object' || payload === null) {
@@ -42,7 +42,10 @@ export async function login(username: string, password: string): Promise<{ token
 		method: 'POST',
 		headers: { 'content-type': 'application/json' },
 		body: JSON.stringify({ username, password })
-	});
+	}).catch(() => null);
+	if (!response) {
+		return null;
+	}
 
 	const payload = await response.json().catch(() => null);
 	if (!response.ok || typeof payload?.token !== 'string' || !payload.token) {
@@ -64,8 +67,8 @@ export async function getSession(cookies: Cookies): Promise<Session | null> {
 
 	const response = await fetch(`${API_ORIGIN}/api/auth/me`, {
 		headers: { Authorization: `Bearer ${token}` }
-	});
-	if (!response.ok) {
+	}).catch(() => null);
+	if (!response || !response.ok) {
 		return null;
 	}
 

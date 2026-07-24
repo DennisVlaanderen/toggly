@@ -152,7 +152,10 @@ describe('deleteUser', () => {
 
 		const result = await deleteUser('a-token', 'u1');
 
-		expect(result).toEqual({ error: 'cannot remove the last remaining admin account', status: 403 });
+		expect(result).toEqual({
+			error: 'cannot remove the last remaining admin account',
+			status: 403
+		});
 	});
 
 	it('falls back to a generic message when the backend gives none', async () => {

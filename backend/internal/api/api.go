@@ -8,15 +8,15 @@ import (
 	"os"
 	"strings"
 
-	"toggly/backend/internal/auth"
-	"toggly/backend/internal/store"
+	"aerendil/backend/internal/auth"
+	"aerendil/backend/internal/store"
 )
 
 type apiResponse struct {
 	Status string `json:"status"`
 }
 
-const devJWTSecret = "toggly-dev-secret"
+const devJWTSecret = "aerendil-dev-secret"
 
 // authService and dataStore are package-level so every handler file in
 // this package can reach them without threading a receiver through every
@@ -26,12 +26,12 @@ var authService *auth.Service
 var dataStore *store.Store
 
 func jwtSecretFromEnvironment() string {
-	secret := strings.TrimSpace(os.Getenv("TOGGLY_JWT_SECRET"))
+	secret := strings.TrimSpace(os.Getenv("AERENDIL_JWT_SECRET"))
 	if secret == "" {
 		if isProductionEnvironment() {
-			log.Fatal("TOGGLY_JWT_SECRET must be set when TOGGLY_ENV=production")
+			log.Fatal("AERENDIL_JWT_SECRET must be set when AERENDIL_ENV=production")
 		}
-		log.Println("TOGGLY_JWT_SECRET not set; using insecure development default")
+		log.Println("AERENDIL_JWT_SECRET not set; using insecure development default")
 		return devJWTSecret
 	}
 	return secret
@@ -180,10 +180,10 @@ func decodeJSON(w http.ResponseWriter, r *http.Request, dst any) error {
 	return json.NewDecoder(r.Body).Decode(dst)
 }
 
-// isProductionEnvironment reports whether TOGGLY_ENV is set to
+// isProductionEnvironment reports whether AERENDIL_ENV is set to
 // "production" -- the switch that turns insecure-default fallbacks (JWT
 // secret, admin password) into hard startup failures instead of warnings.
 // Left unset, behavior is unchanged from before this flag existed.
 func isProductionEnvironment() bool {
-	return strings.EqualFold(strings.TrimSpace(os.Getenv("TOGGLY_ENV")), "production")
+	return strings.EqualFold(strings.TrimSpace(os.Getenv("AERENDIL_ENV")), "production")
 }

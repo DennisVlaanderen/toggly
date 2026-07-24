@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"toggly/backend/internal/auth"
-	"toggly/backend/internal/store"
+	"aerendil/backend/internal/auth"
+	"aerendil/backend/internal/store"
 )
 
 // newTestMux boots a real (single-node, temp-dir-backed) store and wires it
@@ -19,7 +19,7 @@ import (
 func newTestMux(t *testing.T) *http.ServeMux {
 	t.Helper()
 
-	dataDir, err := os.MkdirTemp("", "toggly-middleware-test-*")
+	dataDir, err := os.MkdirTemp("", "aerendil-middleware-test-*")
 	if err != nil {
 		t.Fatalf("create temp data dir: %v", err)
 	}

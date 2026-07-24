@@ -1,10 +1,10 @@
-# Toggly Project Overview
+# Aerendil Project Overview
 
-Toggly is a distributed feature flag management project built with Distributed Data principles in mind. It is designed to support high-availability, real-time feature control for applications and microservices through a combination of a distributed server fleet, web APIs, and application-side flag registries.
+Aerendil is a distributed feature flag management project built with Distributed Data principles in mind. It is designed to support high-availability, real-time feature control for applications and microservices through a combination of a distributed server fleet, web APIs, and application-side flag registries.
 
 ## Core Premise
 
-Toggly enables a central feature flag control plane that applications can query and subscribe to. The main idea is:
+Aerendil enables a central feature flag control plane that applications can query and subscribe to. The main idea is:
 
 - A distributed server cluster stores and manages feature flags.
 - A web API and administration webapp allow operators to enable, disable, and manage flags.
@@ -22,11 +22,11 @@ The server side is built for high availability and redundancy. Key characteristi
 - Servers can handle flag queries, subscriptions, and infrastructure coordination.
 - Design should support Distributed Data concepts such as Quorum, Data Mirroring and Versioned State.
 
-A distributed architecture allows Toggly to scale horizontally and stay available even when individual nodes fail or are restarted.
+A distributed architecture allows Aerendil to scale horizontally and stay available even when individual nodes fail or are restarted.
 
 ## Web API and Webapp
 
-Toggly exposes a web API that enables feature flag operations such as:
+Aerendil exposes a web API that enables feature flag operations such as:
 
 - creating and updating feature flags
 - enabling or disabling features
@@ -37,7 +37,7 @@ A webapp sits on top of these APIs to provide operators with a user-friendly int
 
 ## Application Context and Local Registry
 
-Applications that use Toggly keep their own local registry of feature flags. This registry is populated during an initial request to the server and then maintained locally for fast access.
+Applications that use Aerendil keep their own local registry of feature flags. This registry is populated during an initial request to the server and then maintained locally for fast access.
 
 The application context includes:
 
@@ -50,7 +50,7 @@ This makes applications resilient and performant, because most flag checks can b
 
 ## Near-Real-Time Updates
 
-To avoid stale state, Toggly supports near-real-time updates after an application has cached a flag set.
+To avoid stale state, Aerendil supports near-real-time updates after an application has cached a flag set.
 
 - The server notifies applications when relevant flags change.
 - Applications update their local registry based on those notifications.

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"toggly/backend/internal/store"
+	"aerendil/backend/internal/store"
 )
 
 func TestIsProductionEnvironment(t *testing.T) {
@@ -24,17 +24,17 @@ func TestIsProductionEnvironment(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.value, func(t *testing.T) {
-			t.Setenv("TOGGLY_ENV", tc.value)
+			t.Setenv("AERENDIL_ENV", tc.value)
 			if got := isProductionEnvironment(); got != tc.want {
-				t.Fatalf("isProductionEnvironment() with TOGGLY_ENV=%q = %v, want %v", tc.value, got, tc.want)
+				t.Fatalf("isProductionEnvironment() with AERENDIL_ENV=%q = %v, want %v", tc.value, got, tc.want)
 			}
 		})
 	}
 }
 
 func TestJWTSecretFromEnvironmentUsesConfiguredSecret(t *testing.T) {
-	t.Setenv("TOGGLY_JWT_SECRET", "a-real-secret")
-	t.Setenv("TOGGLY_ENV", "")
+	t.Setenv("AERENDIL_JWT_SECRET", "a-real-secret")
+	t.Setenv("AERENDIL_ENV", "")
 
 	if got := jwtSecretFromEnvironment(); got != "a-real-secret" {
 		t.Fatalf("expected configured secret, got %q", got)
@@ -42,8 +42,8 @@ func TestJWTSecretFromEnvironmentUsesConfiguredSecret(t *testing.T) {
 }
 
 func TestJWTSecretFromEnvironmentFallsBackInDevelopment(t *testing.T) {
-	t.Setenv("TOGGLY_JWT_SECRET", "")
-	t.Setenv("TOGGLY_ENV", "")
+	t.Setenv("AERENDIL_JWT_SECRET", "")
+	t.Setenv("AERENDIL_ENV", "")
 
 	if got := jwtSecretFromEnvironment(); got != devJWTSecret {
 		t.Fatalf("expected dev fallback secret, got %q", got)

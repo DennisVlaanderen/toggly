@@ -11,10 +11,10 @@ import (
 	"syscall"
 	"time"
 
-	"toggly/backend/internal/api"
-	"toggly/backend/internal/auth"
-	"toggly/backend/internal/fqdp"
-	"toggly/backend/internal/store"
+	"aerendil/backend/internal/api"
+	"aerendil/backend/internal/auth"
+	"aerendil/backend/internal/fqdp"
+	"aerendil/backend/internal/store"
 )
 
 func main() {
@@ -63,12 +63,12 @@ func main() {
 }
 
 func storeConfigFromEnvironment() store.Config {
-	nodeID := strings.TrimSpace(os.Getenv("TOGGLY_RAFT_NODE_ID"))
+	nodeID := strings.TrimSpace(os.Getenv("AERENDIL_RAFT_NODE_ID"))
 	if nodeID == "" {
 		nodeID = "node1"
 	}
 
-	bindAddr := strings.TrimSpace(os.Getenv("TOGGLY_RAFT_BIND_ADDR"))
+	bindAddr := strings.TrimSpace(os.Getenv("AERENDIL_RAFT_BIND_ADDR"))
 	if bindAddr == "" {
 		// A wildcard address (":9100") isn't advertisable to raft peers on
 		// some hosts (observed on Windows outside Docker); loopback is a
@@ -76,16 +76,16 @@ func storeConfigFromEnvironment() store.Config {
 		bindAddr = "127.0.0.1:9100"
 	}
 
-	dataDir := strings.TrimSpace(os.Getenv("TOGGLY_RAFT_DATA_DIR"))
+	dataDir := strings.TrimSpace(os.Getenv("AERENDIL_RAFT_DATA_DIR"))
 	if dataDir == "" {
 		dataDir = "./data"
 	}
 
 	bootstrap := true
-	if raw := strings.TrimSpace(os.Getenv("TOGGLY_RAFT_BOOTSTRAP")); raw != "" {
+	if raw := strings.TrimSpace(os.Getenv("AERENDIL_RAFT_BOOTSTRAP")); raw != "" {
 		parsed, err := strconv.ParseBool(raw)
 		if err != nil {
-			log.Fatalf("invalid TOGGLY_RAFT_BOOTSTRAP value %q: %v", raw, err)
+			log.Fatalf("invalid AERENDIL_RAFT_BOOTSTRAP value %q: %v", raw, err)
 		}
 		bootstrap = parsed
 	}
@@ -101,27 +101,27 @@ func storeConfigFromEnvironment() store.Config {
 func adminConfigFromEnvironment() auth.AdminConfig {
 	defaults := auth.DefaultAdminConfig()
 
-	username := strings.TrimSpace(os.Getenv("TOGGLY_ADMIN_USERNAME"))
+	username := strings.TrimSpace(os.Getenv("AERENDIL_ADMIN_USERNAME"))
 	if username == "" {
 		username = defaults.Username
 	}
 
-	password := os.Getenv("TOGGLY_ADMIN_PASSWORD")
+	password := os.Getenv("AERENDIL_ADMIN_PASSWORD")
 	if strings.TrimSpace(password) == "" {
 		if isProductionEnvironment() {
-			log.Fatal("TOGGLY_ADMIN_PASSWORD must be set when TOGGLY_ENV=production")
+			log.Fatal("AERENDIL_ADMIN_PASSWORD must be set when AERENDIL_ENV=production")
 		}
-		log.Println("TOGGLY_ADMIN_PASSWORD not set; using insecure development default")
+		log.Println("AERENDIL_ADMIN_PASSWORD not set; using insecure development default")
 		password = defaults.Password
 	}
 
 	return auth.AdminConfig{Username: username, Password: password}
 }
 
-// isProductionEnvironment reports whether TOGGLY_ENV is set to
+// isProductionEnvironment reports whether AERENDIL_ENV is set to
 // "production" -- the switch that turns insecure-default fallbacks (JWT
 // secret, admin password) into hard startup failures instead of warnings.
 // Left unset, behavior is unchanged from before this flag existed.
 func isProductionEnvironment() bool {
-	return strings.EqualFold(strings.TrimSpace(os.Getenv("TOGGLY_ENV")), "production")
+	return strings.EqualFold(strings.TrimSpace(os.Getenv("AERENDIL_ENV")), "production")
 }

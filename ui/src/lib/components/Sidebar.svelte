@@ -7,6 +7,7 @@
 	import LocaleSwitcher from './LocaleSwitcher.svelte';
 	import type { FlagSummary } from '$lib/server/flags';
 	import { hasPermission } from '$lib/permissions';
+	import { getInitials } from '$lib/initials';
 
 	let {
 		flags,
@@ -24,7 +25,7 @@
 	const canSeeUserManagement = $derived(canSeeUsers || canSeeGroups);
 
 	function isActive(pathname: string) {
-		return page.url.pathname === pathname || page.url.pathname.startsWith(`${pathname}/`);
+		return page.url.pathname === pathname;
 	}
 
 	function handleClickOutsideUserManagement(event: MouseEvent) {
@@ -47,39 +48,28 @@
 <svelte:window onclick={handleClickOutsideUserManagement} onkeydown={handleKeydown} />
 
 <aside
-	class="flex h-full flex-shrink-0 flex-col gap-5 border-r border-brand-100 bg-white p-5 transition-[width] duration-200 {collapsed
-		? 'w-[4.5rem]'
-		: 'w-64'}"
+	class="flex h-full shrink-0 flex-col border-r border-line-2 bg-sidebar transition-[width] duration-200 {collapsed
+		? 'w-18'
+		: 'w-62.5'}"
 >
-	<div class="flex items-center gap-2.5">
-		<button
-			type="button"
-			class="flex h-9 w-9 flex-shrink-0 cursor-pointer items-center justify-center rounded-xl border border-brand-200 bg-accent-50 text-brand-800"
-			onclick={() => (collapsed = !collapsed)}
-			aria-label={collapsed ? m.sidebar_expand() : m.sidebar_collapse()}
-		>
-			{#if collapsed}
-				<span class="icon-[lucide--panel-left-open] size-4.5" aria-hidden="true"></span>
-			{:else}
-				<span class="icon-[lucide--panel-left-close] size-4.5" aria-hidden="true"></span>
-			{/if}
-		</button>
+	<div class="flex items-center gap-2.5 border-b border-line-2 px-4.5 py-5 h-16">
+		<img src="/aerendil-logo.svg" width="26" height="26" class="shrink-0" alt="Aerendil Logo"/>
 		{#if !collapsed}
-			<span class="truncate font-bold text-brand-900">{username}</span>
+			<span class="truncate text-base font-semibold tracking-[0.3px] text-ink">Aerendil</span>
 		{/if}
 	</div>
 
-	<nav class="flex flex-1 flex-col gap-1 overflow-y-auto">
+	<nav class="flex flex-1 flex-col gap-1 overflow-y-auto p-2.5">
 		<a
-			class="flex items-center gap-2.5 truncate rounded-2xl px-2.5 py-2.5 font-semibold text-brand-800 no-underline hover:bg-accent-50 {isActive(
+			class="flex items-center gap-3 truncate rounded-lg px-2.5 py-2.25 text-[13.5px] font-medium no-underline hover:bg-line-3 {isActive(
 				'/dashboard'
 			)
-				? 'bg-accent-100 text-brand-700'
-				: ''}"
+				? 'bg-nav-active-bg text-nav-active'
+				: 'text-nav-inactive'}"
 			href={resolve(localizeHref('/dashboard') as Pathname)}
 		>
-			<span class="flex w-6 flex-shrink-0 justify-center" aria-hidden="true">
-				<span class="icon-[lucide--layout-dashboard] size-4"></span>
+			<span class="flex w-4.5 shrink-0 justify-center" aria-hidden="true">
+				<span class="icon-[lucide--layout-dashboard] size-4.5"></span>
 			</span>
 			{#if !collapsed}<span>{m.nav_dashboard()}</span>{/if}
 		</a>
@@ -88,22 +78,22 @@
 			<div bind:this={userManagementContainer}>
 				<button
 					type="button"
-					class="flex w-full cursor-pointer items-center gap-2.5 truncate rounded-2xl px-2.5 py-2.5 font-semibold text-brand-800 hover:bg-accent-50 {isActive(
+					class="flex w-full cursor-pointer items-center gap-3 truncate rounded-lg px-2.5 py-2.25 text-[13.5px] font-medium hover:bg-line-3 {isActive(
 						'/dashboard/users'
 					) || isActive('/dashboard/groups')
-						? 'bg-accent-100 text-brand-700'
-						: ''}"
+						? 'bg-nav-active-bg text-nav-active'
+						: 'text-nav-inactive'}"
 					aria-haspopup="true"
 					aria-expanded={userManagementOpen}
 					onclick={() => (userManagementOpen = !userManagementOpen)}
 				>
-					<span class="flex w-6 flex-shrink-0 justify-center" aria-hidden="true">
-						<span class="icon-[lucide--users] size-4"></span>
+					<span class="flex w-4.5 shrink-0 justify-center" aria-hidden="true">
+						<span class="icon-[lucide--users] size-4.5"></span>
 					</span>
 					{#if !collapsed}
 						<span class="flex-1 text-left">{m.nav_user_management()}</span>
 						<span
-							class="icon-[lucide--chevron-down] size-3.5 text-accent-900/60 transition-transform duration-150 {userManagementOpen
+							class="icon-[lucide--chevron-down] size-3.5 text-nav-inactive transition-transform duration-150 {userManagementOpen
 								? 'rotate-180'
 								: ''}"
 							aria-hidden="true"
@@ -112,14 +102,14 @@
 				</button>
 
 				{#if userManagementOpen && !collapsed}
-					<div class="mt-1 ml-4 flex flex-col gap-1 border-l border-brand-100 pl-2.5">
+					<div class="mt-0.5 ml-7.5 flex flex-col gap-0.5 border-l border-line-3 pl-2.5">
 						{#if canSeeUsers}
 							<a
-								class="flex items-center gap-2.5 truncate rounded-2xl px-2.5 py-2 text-sm font-semibold text-brand-800 no-underline hover:bg-accent-50 {isActive(
+								class="flex items-center gap-2.5 truncate rounded-md px-2.5 py-1.75 text-[13px] font-medium no-underline hover:bg-line-3 {isActive(
 									'/dashboard/users'
 								)
-									? 'bg-accent-100 text-brand-700'
-									: ''}"
+									? 'bg-nav-active-bg text-nav-active'
+									: 'text-nav-inactive'}"
 								href={resolve(localizeHref('/dashboard/users') as Pathname)}
 							>
 								{m.nav_users()}
@@ -127,11 +117,11 @@
 						{/if}
 						{#if canSeeGroups}
 							<a
-								class="flex items-center gap-2.5 truncate rounded-2xl px-2.5 py-2 text-sm font-semibold text-brand-800 no-underline hover:bg-accent-50 {isActive(
+								class="flex items-center gap-2.5 truncate rounded-md px-2.5 py-1.75 text-[13px] font-medium no-underline hover:bg-line-3 {isActive(
 									'/dashboard/groups'
 								)
-									? 'bg-accent-100 text-brand-700'
-									: ''}"
+									? 'bg-nav-active-bg text-nav-active'
+									: 'text-nav-inactive'}"
 								href={resolve(localizeHref('/dashboard/groups') as Pathname)}
 							>
 								{m.nav_groups()}
@@ -144,7 +134,7 @@
 
 		{#if !collapsed}
 			<p
-				class="mt-3 mb-0.5 flex items-center gap-1.5 text-xs font-bold tracking-wider text-accent-900/70 uppercase"
+				class="mt-3 mb-0.5 flex items-center gap-1.5 px-2.5 text-[11px] font-semibold tracking-wide text-nav-inactive uppercase"
 			>
 				<span class="icon-[lucide--flag] size-3.5" aria-hidden="true"></span>
 				{m.nav_flags()}
@@ -152,22 +142,22 @@
 		{/if}
 
 		{#if flags.length === 0 && !collapsed}
-			<p class="text-sm text-accent-900/60">{m.nav_no_flags()}</p>
+			<p class="px-2.5 text-sm text-ink-muted">{m.nav_no_flags()}</p>
 		{:else}
 			{#each flags as flag (flag.key)}
 				<a
-					class="flex items-center gap-2.5 truncate rounded-2xl px-2.5 py-2.5 font-semibold text-brand-800 no-underline hover:bg-accent-50 {isActive(
+					class="flex items-center gap-3 truncate rounded-lg px-2.5 py-2.25 text-[13.5px] font-medium no-underline hover:bg-line-3 {isActive(
 						`/dashboard/flags/${flag.key}`
 					)
-						? 'bg-accent-100 text-brand-700'
-						: ''}"
+						? 'bg-nav-active-bg text-nav-active'
+						: 'text-nav-inactive'}"
 					href={resolve(localizeHref(`/dashboard/flags/${flag.key}`) as Pathname)}
 				>
-					<span class="flex w-6 flex-shrink-0 justify-center" aria-hidden="true">
+					<span class="flex w-4.5 shrink-0 justify-center" aria-hidden="true">
 						{#if flag.enabled}
-							<span class="icon-[lucide--toggle-right] size-4 text-success-500"></span>
+							<span class="icon-[lucide--toggle-right] size-4.5 text-success"></span>
 						{:else}
-							<span class="icon-[lucide--toggle-left] size-4 text-accent-900/40"></span>
+							<span class="icon-[lucide--toggle-left] size-4.5 text-ink-muted"></span>
 						{/if}
 					</span>
 					{#if !collapsed}<span>{flag.key}</span>{/if}
@@ -176,18 +166,47 @@
 		{/if}
 	</nav>
 
-	<div class="flex flex-col gap-3 border-t border-brand-100 pt-4">
+	<div class="flex flex-col gap-0.5 border-t border-line-2 p-2.5">
 		<LocaleSwitcher compact={collapsed} />
 		<form method="POST" action="/logout">
 			<button
 				type="submit"
-				class="flex w-full cursor-pointer items-center gap-2.5 truncate rounded-2xl bg-error-50 px-2.5 py-2.5 font-bold text-error-700"
+				class="flex w-full cursor-pointer items-center gap-3 truncate rounded-lg px-2.5 py-2.25 text-[13.5px] font-medium text-error hover:bg-line-3"
 			>
-				<span class="flex w-6 flex-shrink-0 justify-center" aria-hidden="true">
-					<span class="icon-[lucide--log-out] size-4"></span>
+				<span class="flex w-4.5 shrink-0 justify-center" aria-hidden="true">
+					<span class="icon-[lucide--log-out] size-4.5"></span>
 				</span>
 				{#if !collapsed}<span>{m.logout_button()}</span>{/if}
 			</button>
 		</form>
 	</div>
+
+	<div class="flex items-center gap-2.5 border-t border-line-2 px-4 py-3.5">
+		<div
+				class="flex size-6.5 shrink-0 items-center justify-center rounded-full bg-avatar text-[11px] font-semibold text-cream"
+			>
+				{getInitials(username)}
+			</div>
+			{#if !collapsed}
+			<div class="min-w-0">
+				<div class="truncate text-[12.5px] font-medium text-ink">{username}</div>
+				<div class="truncate text-[11px] text-ink-muted">
+					{isAdmin ? m.sidebar_role_admin() : m.sidebar_role_member()}
+				</div>
+			</div>
+			{/if}
+		</div>
+
+	<button
+		type="button"
+		class="flex cursor-pointer items-center gap-2 border-t border-line-2 px-4 py-3 text-ink-muted h-10"
+		onclick={() => (collapsed = !collapsed)}
+		aria-label={collapsed ? m.sidebar_expand() : m.sidebar_collapse()}
+	>
+		<span
+			class="{collapsed ? 'icon-[lucide--panel-left-open]' : 'icon-[lucide--panel-left-close]'} size-3.5 shrink-0"
+			aria-hidden="true"
+		></span>
+		{#if !collapsed}<span class="text-xs overflow-hidden h-4">{m.sidebar_collapse()}</span>{/if}
+	</button>
 </aside>

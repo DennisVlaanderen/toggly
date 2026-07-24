@@ -50,9 +50,9 @@
 <div class="relative flex {compact ? 'justify-center' : ''}" bind:this={container}>
 	<button
 		type="button"
-		class="flex cursor-pointer items-center gap-2 rounded-full border border-brand-200 bg-accent-50/40 text-sm font-semibold whitespace-nowrap text-brand-800 {compact
+		class="flex cursor-pointer items-center gap-2 rounded-lg border border-line-1 bg-page text-[13.5px] font-medium whitespace-nowrap text-ink {compact
 			? 'gap-1 p-2'
-			: 'px-3 py-2'}"
+			: 'px-2.5 py-2.25'}"
 		aria-haspopup="listbox"
 		aria-expanded={open}
 		aria-label={m.locale_switcher_label()}
@@ -61,7 +61,7 @@
 		<span class="text-lg leading-none" aria-hidden="true">{localeMeta[getLocale()].flag}</span>
 		{#if !compact}<span>{localeMeta[getLocale()].name}</span>{/if}
 		<span
-			class="icon-[lucide--chevron-down] size-3.5 text-accent-900/60 transition-transform duration-150 {open
+			class="icon-[lucide--chevron-down] size-3.5 text-ink-muted transition-transform duration-150 {open
 				? 'rotate-180'
 				: ''}"
 			aria-hidden="true"
@@ -70,7 +70,7 @@
 
 	{#if open}
 		<ul
-			class="absolute z-30 flex min-w-40 flex-col gap-0.5 rounded-2xl border border-brand-100 bg-white p-1.5 shadow-xl {openUpward
+			class="absolute z-30 flex min-w-40 flex-col gap-0.5 rounded-xl border border-line-1 bg-surface p-1.5 {openUpward
 				? 'bottom-[calc(100%+0.4rem)]'
 				: 'top-[calc(100%+0.4rem)]'} {compact ? 'left-0' : 'right-0'}"
 			role="listbox"
@@ -80,9 +80,9 @@
 				<li>
 					<button
 						type="button"
-						class="flex w-full cursor-pointer items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-sm font-semibold text-brand-800 hover:bg-accent-100 {getLocale() ===
+						class="flex w-full cursor-pointer items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm font-medium text-ink hover:bg-line-3 {getLocale() ===
 						locale
-							? 'bg-accent-200 text-brand-700'
+							? 'bg-nav-active-bg text-nav-active'
 							: ''}"
 						role="option"
 						aria-selected={getLocale() === locale}
