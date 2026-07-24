@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project overview
 
-Toggly is a distributed feature-flagging toolkit — **a work in progress, not
+Aerendil is a distributed feature-flagging toolkit — **a work in progress, not
 yet a working product**. Core premise: a Raft-replicated cluster of servers
 stores flags and serves them over both a custom binary TCP protocol (FQDP)
 and an HTTP API, so applications get near-real-time flag updates without
@@ -17,7 +17,7 @@ including places where the current code is intentionally behind the spec.
 
 The repo has three parts, each with its own toolchain:
 
-- `backend/` — Go server. Module root is the repo root (module `toggly`), entry
+- `backend/` — Go server. Module root is the repo root (module `aerendil`), entry
   point `backend/cmd/server/main.go`.
 - `ui/` — SvelteKit 5 admin webapp (TypeScript, Tailwind, pnpm).
 - `proxy/` — nginx config fronting backend + UI (see `docker-compose.yml`).
@@ -90,8 +90,8 @@ store.
 
 - **`auth/`** — `Service` in `service.go` issues/parses HS256 JWTs
   (`golang-jwt/jwt`) and hashes passwords with bcrypt. There are exactly two
-  accounts today: a configurable admin (`TOGGLY_ADMIN_USERNAME` /
-  `TOGGLY_ADMIN_PASSWORD`, bcrypt-hashed at startup) and a hardcoded
+  accounts today: a configurable admin (`AERENDIL_ADMIN_USERNAME` /
+  `AERENDIL_ADMIN_PASSWORD`, bcrypt-hashed at startup) and a hardcoded
   `user`/`user123` — this is not yet a real user store (see Epic 7 in
   `docs/user-stories.md` for where this is headed). Roles are the plain
   strings `RoleAdmin` ("admin") / `RoleUser` ("user").
@@ -113,8 +113,8 @@ from server-side code (`+page.server.ts` / `lib/server/`), never directly
 from the browser.
 
 - **`lib/server/auth.ts`** is the only bridge to the backend API
-  (`TOGGLY_API_ORIGIN` env var, default `http://127.0.0.1:8080`). `login()`
-  POSTs to `/api/auth/login`; `getSession()` reads the `toggly.auth` httpOnly
+  (`AERENDIL_API_ORIGIN` env var, default `http://127.0.0.1:8080`). `login()`
+  POSTs to `/api/auth/login`; `getSession()` reads the `aerendil.auth` httpOnly
   cookie and validates it against `/api/auth/me` on every call (no local
   session cache) — the JWT itself lives only in that cookie.
   `setAuthCookie`/`clearAuthCookie` manage it (`secure` in non-dev).

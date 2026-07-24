@@ -3,7 +3,7 @@ package auth
 import (
 	"testing"
 
-	"toggly/backend/internal/store"
+	"aerendil/backend/internal/store"
 )
 
 func TestResolveAdminGroupBypasses(t *testing.T) {

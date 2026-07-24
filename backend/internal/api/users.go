@@ -7,7 +7,7 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 
-	"toggly/backend/internal/store"
+	"aerendil/backend/internal/store"
 )
 
 // minPasswordLength is deliberately simple (length only, no complexity

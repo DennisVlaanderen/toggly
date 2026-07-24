@@ -16,7 +16,7 @@ import (
 func NewTestStore(t testing.TB) *Store {
 	t.Helper()
 
-	dataDir, err := os.MkdirTemp("", "toggly-test-store-*")
+	dataDir, err := os.MkdirTemp("", "aerendil-test-store-*")
 	if err != nil {
 		t.Fatalf("create temp data dir: %v", err)
 	}

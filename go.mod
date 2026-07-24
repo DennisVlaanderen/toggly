@@ -1,4 +1,4 @@
-module toggly
+module aerendil
 
 go 1.25.0
 

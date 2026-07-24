@@ -7,7 +7,7 @@ export interface FlagSummary {
 	version: number;
 }
 
-const API_ORIGIN = env.TOGGLY_API_ORIGIN?.trim() || 'http://127.0.0.1:8080';
+const API_ORIGIN = env.AERENDIL_API_ORIGIN?.trim() || 'http://127.0.0.1:8080';
 
 export async function listFlags(token: string): Promise<FlagSummary[]> {
 	const response = await fetch(`${API_ORIGIN}/api/flags`, {

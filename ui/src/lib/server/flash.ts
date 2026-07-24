@@ -3,7 +3,7 @@ import type { Cookies } from '@sveltejs/kit';
 
 export type FlashReason = 'route-not-found';
 
-const FLASH_COOKIE = 'toggly.flash';
+const FLASH_COOKIE = 'aerendil.flash';
 
 export function setFlash(cookies: Cookies, reason: FlashReason) {
 	cookies.set(FLASH_COOKIE, reason, {

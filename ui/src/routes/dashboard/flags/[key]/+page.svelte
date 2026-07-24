@@ -6,7 +6,7 @@
 </script>
 
 <svelte:head>
-	<title>{data.flag.key} • Toggly</title>
+	<title>{data.flag.key} • Aerendil</title>
 </svelte:head>
 
 <div class="p-8">

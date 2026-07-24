@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Cookies } from '@sveltejs/kit';
 import { getSession, login } from './auth';
 
-// login()/getSession() call the backend over TOGGLY_API_ORIGIN (default
+// login()/getSession() call the backend over AERENDIL_API_ORIGIN (default
 // http://127.0.0.1:8080), which only exists in a real deployment. This suite
 // runs in a plain Node environment, so fetch is mocked -- these are unit
 // tests for the response-handling logic, not integration tests against a
@@ -90,7 +90,7 @@ describe('getSession', () => {
 			})
 		);
 
-		const result = await getSession(fakeCookies({ 'toggly.auth': 'a-token' }));
+		const result = await getSession(fakeCookies({ 'aerendil.auth': 'a-token' }));
 
 		expect(result).toEqual({
 			id: 'u2',
@@ -107,7 +107,7 @@ describe('getSession', () => {
 	it('returns null when the backend rejects the token', async () => {
 		vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(401, { error: 'invalid token' }));
 
-		const result = await getSession(fakeCookies({ 'toggly.auth': 'stale-token' }));
+		const result = await getSession(fakeCookies({ 'aerendil.auth': 'stale-token' }));
 
 		expect(result).toBeNull();
 	});
@@ -117,7 +117,7 @@ describe('getSession', () => {
 			jsonResponse(200, { user: { id: 'u2', username: 'someone' } })
 		);
 
-		const result = await getSession(fakeCookies({ 'toggly.auth': 'a-token' }));
+		const result = await getSession(fakeCookies({ 'aerendil.auth': 'a-token' }));
 
 		expect(result).toBeNull();
 	});

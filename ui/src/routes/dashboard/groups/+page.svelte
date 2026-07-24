@@ -94,7 +94,7 @@
 </script>
 
 <svelte:head>
-	<title>{m.groups_page_title()} • Toggly</title>
+	<title>{m.groups_page_title()} • Aerendil</title>
 </svelte:head>
 
 <div class="grid gap-6 p-8">

@@ -9,8 +9,8 @@ export interface Session {
 	permissions: string[];
 }
 
-const AUTH_COOKIE = 'toggly.auth';
-const API_ORIGIN = env.TOGGLY_API_ORIGIN?.trim() || 'http://127.0.0.1:8080';
+const AUTH_COOKIE = 'aerendil.auth';
+const API_ORIGIN = env.AERENDIL_API_ORIGIN?.trim() || 'http://127.0.0.1:8080';
 
 function parseSession(payload: unknown): Session | null {
 	if (typeof payload !== 'object' || payload === null) {

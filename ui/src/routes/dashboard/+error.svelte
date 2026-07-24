@@ -7,7 +7,7 @@
 </script>
 
 <svelte:head>
-	<title>{m.error_title()} • Toggly</title>
+	<title>{m.error_title()} • Aerendil</title>
 </svelte:head>
 
 <div class="p-8">

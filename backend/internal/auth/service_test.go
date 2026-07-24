@@ -5,7 +5,7 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 
-	"toggly/backend/internal/store"
+	"aerendil/backend/internal/store"
 )
 
 func newTestService(t *testing.T, cfg AdminConfig) (*Service, *store.Store) {

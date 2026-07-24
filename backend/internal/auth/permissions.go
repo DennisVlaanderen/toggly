@@ -4,7 +4,7 @@ import (
 	"errors"
 	"sort"
 
-	"toggly/backend/internal/store"
+	"aerendil/backend/internal/store"
 )
 
 const (

@@ -7,7 +7,7 @@
 </script>
 
 <svelte:head>
-	<title>Dashboard • Toggly</title>
+	<title>Dashboard • Aerendil</title>
 </svelte:head>
 
 <div class="p-8">

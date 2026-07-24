@@ -10,7 +10,7 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 
-	"toggly/backend/internal/store"
+	"aerendil/backend/internal/store"
 )
 
 const seedLeaderWaitTimeout = 10 * time.Second
@@ -52,7 +52,7 @@ func seedAdminGroupAndUserOnce(s *store.Store, cfg AdminConfig) error {
 
 	// Usernames are stored lowercase (see auth.Service.Authenticate and
 	// api.usersPostHandler/usersPutHandler) so a configured
-	// TOGGLY_ADMIN_USERNAME of e.g. "Admin" still matches an existing
+	// AERENDIL_ADMIN_USERNAME of e.g. "Admin" still matches an existing
 	// "admin" account instead of seeding a distinct-cased duplicate.
 	username := strings.ToLower(strings.TrimSpace(cfg.Username))
 
@@ -61,14 +61,14 @@ func seedAdminGroupAndUserOnce(s *store.Store, cfg AdminConfig) error {
 	}
 
 	// This is a fresh admin account, not a rename of an existing one --
-	// TOGGLY_ADMIN_USERNAME only takes effect on the very first boot for a
-	// given username, mirroring how TOGGLY_ADMIN_PASSWORD is never re-applied
+	// AERENDIL_ADMIN_USERNAME only takes effect on the very first boot for a
+	// given username, mirroring how AERENDIL_ADMIN_PASSWORD is never re-applied
 	// to an existing account (see the doc comment above). If another admin
 	// already exists under a different username, warn loudly: the operator
 	// likely intended to rename the admin account, but this creates a
 	// second, independent one instead, leaving the original fully active.
 	if hasOtherActiveAdmin(s) {
-		log.Printf("auth: TOGGLY_ADMIN_USERNAME is %q but at least one other Admin-group account already exists; seeding a new admin account rather than renaming the existing one -- the original account remains active and must be deactivated/removed manually if that wasn't intended", username)
+		log.Printf("auth: AERENDIL_ADMIN_USERNAME is %q but at least one other Admin-group account already exists; seeding a new admin account rather than renaming the existing one -- the original account remains active and must be deactivated/removed manually if that wasn't intended", username)
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(cfg.Password), bcrypt.DefaultCost)

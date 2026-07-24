@@ -52,7 +52,7 @@ package
 
 # End of https://www.toptal.com/developers/gitignore/api/go,visualstudiocode,svelte
 
-### Toggly ###
-# Local raft data dir (TOGGLY_RAFT_DATA_DIR default), wherever `go run` is
+### Aerendil ###
+# Local raft data dir (AERENDIL_RAFT_DATA_DIR default), wherever `go run` is
 # invoked from.
 backend/**/data/

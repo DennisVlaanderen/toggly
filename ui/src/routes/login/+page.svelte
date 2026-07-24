@@ -37,7 +37,7 @@
 </script>
 
 <svelte:head>
-	<title>Login • Toggly</title>
+	<title>Login • Aerendil</title>
 </svelte:head>
 
 <div class="fixed top-6 right-6 z-20">

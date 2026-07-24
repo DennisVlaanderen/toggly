@@ -8,8 +8,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"toggly/backend/internal/auth"
-	"toggly/backend/internal/store"
+	"aerendil/backend/internal/auth"
+	"aerendil/backend/internal/store"
 )
 
 func TestGroupsPostRejectsUnknownPermission(t *testing.T) {

@@ -4,7 +4,7 @@ Instructions for AI coding agents working in this repository.
 
 ## Project overview
 
-Toggly is a distributed feature flagging toolkit. It is a work in progress, not
+Aerendil is a distributed feature flagging toolkit. It is a work in progress, not
 yet a working product. See [README.md](./README.md), [IDEA.md](./IDEA.md), and
 [docs/premise.md](./docs/premise.md) for the project's goals, and
 [docs/fqdp.md](./docs/fqdp.md) for the custom Layer 4 TCP protocol (FQDP) it
@@ -20,7 +20,7 @@ The repo has three main parts:
 
 ## Build, test, and lint
 
-Go backend (run from the repo root, module is `toggly`):
+Go backend (run from the repo root, module is `aerendil`):
 
 ```sh
 go build -v ./...

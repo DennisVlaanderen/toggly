@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"toggly/backend/internal/auth"
+	"aerendil/backend/internal/auth"
 )
 
 // resolvedPrincipal is the authenticated caller of the current request,

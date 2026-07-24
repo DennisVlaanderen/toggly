@@ -9,7 +9,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 
-	"toggly/backend/internal/store"
+	"aerendil/backend/internal/store"
 )
 
 const defaultTokenTTL = 24 * time.Hour
@@ -19,7 +19,7 @@ const defaultTokenTTL = 24 * time.Hour
 // bcrypt compare -- without this, response latency alone would reveal
 // whether a username exists even though the returned error text is
 // identical either way.
-var dummyPasswordHash = mustBcryptHash("toggly-timing-safe-dummy-password")
+var dummyPasswordHash = mustBcryptHash("aerendil-timing-safe-dummy-password")
 
 func mustBcryptHash(password string) []byte {
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
